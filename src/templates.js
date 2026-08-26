@@ -104,6 +104,33 @@ function tidy(value) {
  * "by Jonathan Haidt (Author) Format: Hardcover" on a book. Each states the
  * same fact wrapped in different chrome.
  */
+function npmLicense(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  // Very old packages use { type, url } or an array of them.
+  if (Array.isArray(value)) return value.map(npmLicense).filter(Boolean).join(', ') || null;
+  return value.type || null;
+}
+
+function npmRepositoryUrl(repository) {
+  const raw = typeof repository === 'string' ? repository : repository?.url;
+  if (!raw) return null;
+  // Registry URLs come as git+ssh://git@host/o/r.git, git+https://…, git://…
+  // or a bare "owner/repo" shorthand. Normalise to a browsable https URL.
+  let url = raw.replace(/^git\+/, '').replace(/\.git$/, '');
+  if (/^[\w.-]+\/[\w.-]+$/.test(url)) return `https://github.com/${url}`;
+  url = url.replace(/^git@([^:]+):/, 'https://$1/');
+  url = url.replace(/^(?:git|ssh):\/\/(?:git@)?/, 'https://');
+  url = url.replace(/^https:\/\/git@/, 'https://');
+  return url;
+}
+
+function npmBugsUrl(bugs) {
+  if (!bugs) return null;
+  if (typeof bugs === 'string') return bugs;
+  return bugs.url || bugs.email || null;
+}
+
 function amazonByline($) {
   const contributor = tidy($('#bylineInfo .contributorNameID').first().text());
   const raw = tidy($('#bylineInfo').first().text());
@@ -466,25 +493,66 @@ export const TEMPLATES = [
   {
     id: 'npm-package',
     name: 'npm Package',
-    description: 'Scrape an npm package page for name, version, description, weekly downloads, license, and dependencies.',
-    targetPattern: /npmjs\.com\/package\//i,
-    extract($) {
-      const scripts = [];
-      $('script[type="application/ld+json"]').each((_, el) => {
-        try { scripts.push(JSON.parse($(el).html())); } catch {}
-      });
-      const ld = scripts[0] || {};
+    description:
+      'Read a package from the npm registry API rather than the rendered npmjs.com page: exact ' +
+      'latest version, license, repository, homepage, maintainers, dependencies and any ' +
+      'deprecation notice. npmjs.com blocks plain HTTP fetches, and its markup carries no stable ' +
+      'hooks, so the page itself yields almost nothing. Weekly download counts are not included — ' +
+      'they live on a separate api.npmjs.org endpoint.',
+    targetPattern: /npmjs\.com\/package\/|registry\.npmjs\.org\//i,
+
+    /** Point the fetch at the registry document for the same package. */
+    resolveUrl(url) {
+      const parsed = new URL(url);
+      if (parsed.hostname === 'registry.npmjs.org') return url;
+      // /package/<name>, /package/@scope/<name>, either optionally followed by
+      // /v/<version> or /access etc.
+      const match = parsed.pathname.match(/\/package\/((?:@[^/]+\/)?[^/]+)/i);
+      if (!match) return url;
+      return `https://registry.npmjs.org/${match[1]}`;
+    },
+
+    extractRaw(body, url) {
+      let doc;
+      try {
+        doc = JSON.parse(body);
+      } catch {
+        throw new Error(
+          `Not an npm registry document: ${url} did not return JSON. ` +
+          'This template reads the npm registry API.'
+        );
+      }
+
+      // The registry answers an unknown package with {"error":"Not found"}.
+      if (!doc || typeof doc.name !== 'string') {
+        const reason = typeof doc?.error === 'string' ? doc.error : 'no package document';
+        throw new Error(`No npm package at ${url}: ${reason}.`);
+      }
+
+      const latest = doc['dist-tags']?.latest || null;
+      const release = (latest && doc.versions?.[latest]) || {};
+      const deps = release.dependencies || {};
 
       return {
-        name: text($, 'h1') || ld.name,
-        version: text($, 'h3[data-testid="package-version-number"]') || text($, '[class*="version"]'),
-        description: attr($, 'meta[name="description"]', 'content') || text($, 'p[class*="description"]'),
-        license: text($, 'span[class*="license"]') || text($, '[data-cy="license"]') || ld.license,
-        weekly_downloads: text($, 'span[class*="weekly-downloads"]') || text($, '[data-cy="downloads"]'),
-        install_command: `npm install ${ld.name || text($, 'h1') || ''}`.trim(),
-        homepage: attr($, 'a[href][class*="homepage"]', 'href'),
-        repository: attr($, 'a[href*="github.com"]', 'href'),
-        maintainers: list($, 'a[href*="/~"]')
+        name: doc.name,
+        version: latest,
+        description: release.description || doc.description || null,
+        license: npmLicense(release.license ?? doc.license),
+        homepage: release.homepage || doc.homepage || null,
+        repository: npmRepositoryUrl(release.repository || doc.repository),
+        bugs: npmBugsUrl(release.bugs || doc.bugs),
+        keywords: release.keywords || doc.keywords || [],
+        maintainers: (doc.maintainers || [])
+          .map(m => (typeof m === 'string' ? m : m?.name))
+          .filter(Boolean),
+        dependencies: deps,
+        dependency_count: Object.keys(deps).length,
+        // A string when the publisher deprecated it, false otherwise — npm
+        // keeps serving deprecated packages, so this is the only signal.
+        deprecated: typeof release.deprecated === 'string' ? release.deprecated : false,
+        published: (latest && doc.time?.[latest]) || null,
+        last_modified: doc.time?.modified || null,
+        install_command: `npm install ${doc.name}`
       };
     }
   }
