@@ -172,6 +172,22 @@ function fullSizeImage(src) {
   return src.replace(/\._[^/]*_\.(jpe?g|png|gif)$/i, ".$1");
 }
 
+// ── YouTube helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Views and likes are both userInteractionCount; only the sibling
+ * interactionType tells them apart, and YouTube emits the LikeAction counter
+ * first — so reading the attribute directly returns likes where views are
+ * meant. There is no interactionCount attribute on the page at all.
+ */
+function youtubeInteractionCount($, action) {
+  const counter = $('[itemprop="interactionStatistic"]')
+    .filter((_, el) => ($(el).find('[itemprop="interactionType"]').attr('content') || '').split('/').pop() === action)
+    .first();
+  const count = counter.find('[itemprop="userInteractionCount"]').attr('content');
+  return count ? Number.parseInt(count, 10) : null;
+}
+
 // ── Template definitions ─────────────────────────────────────────────────────
 
 export const TEMPLATES = [
@@ -360,7 +376,8 @@ export const TEMPLATES = [
         title: attr($, 'meta[name="title"]', 'content') || attr($, 'meta[property="og:title"]', 'content'),
         channel: attr($, 'link[itemprop="name"]', 'content') || text($, '#channel-name'),
         channel_url: attr($, 'span[itemprop="author"] link[itemprop="url"]', 'href'),
-        views: attr($, 'meta[itemprop="interactionCount"]', 'content'),
+        views: youtubeInteractionCount($, 'WatchAction'),
+        likes: youtubeInteractionCount($, 'LikeAction'),
         published: attr($, 'meta[itemprop="uploadDate"]', 'content') || attr($, 'meta[itemprop="datePublished"]', 'content'),
         description: attr($, 'meta[property="og:description"]', 'content'),
         thumbnail: attr($, 'meta[property="og:image"]', 'content'),
