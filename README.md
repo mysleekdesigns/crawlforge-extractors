@@ -1,6 +1,7 @@
 # crawlforge-extractors
 
-Site-specific extraction logic shared by the [CrawlForge](https://www.crawlforge.dev) MCP server and REST API.
+Extraction logic shared by the [CrawlForge](https://www.crawlforge.dev) MCP server and REST API:
+site-specific scrape templates, response body reading, and structural fingerprinting.
 
 ## Why this package exists
 
@@ -14,6 +15,10 @@ extractors. The copies drifted, and nothing detected it:
 
 A customer would have found both before we did. One implementation removes the
 possibility rather than adding a check for it.
+
+The same reasoning brought in `readBody` and the structure signatures: both
+were behaviours one surface had and the other did not, for no reason anyone
+had decided.
 
 ## Scope
 
@@ -43,6 +48,42 @@ to `extract($)` with a cheerio document otherwise.
 
 A template that rejects a response as not its own throws — surface that to the
 caller as a bad request, not a server error.
+
+### Reading a response body
+
+`readBody` decodes with the body's real charset and refuses to buffer past a
+cap. Decoding everything as UTF-8 mangles the large share of the web still
+served as Shift_JIS, GBK or ISO-8859-1, and an uncapped read lets one oversized
+response exhaust a serverless function.
+
+```js
+import { readBody, BodyTooLargeError } from 'crawlforge-extractors';
+
+try {
+  const html = await readBody(response, { maxBytes: 10 * 1024 * 1024 });
+} catch (error) {
+  if (error instanceof BodyTooLargeError) {
+    // error.limit and error.size say what happened.
+  }
+}
+```
+
+It takes a `Response` the caller has already issued, not a URL — SSRF policy,
+host throttling and timeouts differ between the two surfaces and stay with them.
+
+### Comparing page structure
+
+```js
+import { structureSignature, structuralSimilarity } from 'crawlforge-extractors';
+
+const before = structureSignature(cheerio.load(oldHtml));
+const after = structureSignature(cheerio.load(newHtml));
+structuralSimilarity(before, after); // 0-1
+```
+
+A signature is the page's tag vocabulary plus its element-count-by-depth
+histogram — a few dozen keys, small enough to store next to a change-tracking
+baseline instead of keeping the whole DOM.
 
 ## Templates
 

@@ -10,8 +10,18 @@
  *
  * Only logic that is pure and dependency-light belongs here: parse a body,
  * return fields. Fetching, billing, auth, caching and browser work stay with
- * whichever surface is calling.
+ * whichever surface is calling — which is why readBody takes a Response the
+ * caller has already issued rather than a URL.
  */
 
 export { TemplateRegistry, TEMPLATES } from './src/templates.js';
 export { TemplateRegistry as default } from './src/templates.js';
+
+export {
+  readBody,
+  detectCharset,
+  BodyTooLargeError,
+  DEFAULT_MAX_BODY_BYTES
+} from './src/body.js';
+
+export { structureSignature, structuralSimilarity } from './src/structure.js';
