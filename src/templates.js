@@ -188,6 +188,48 @@ function youtubeInteractionCount($, action) {
   return count ? Number.parseInt(count, 10) : null;
 }
 
+// ── GitHub helpers ───────────────────────────────────────────────────────────
+
+/**
+ * The logged-out repo page is GitHub's React code view: the About sidebar
+ * (homepage link, license, topics, counts) is not rendered as HTML — it ships
+ * as JSON inside <script data-target="react-app.embeddedData">, and the DOM
+ * around it is skeleton placeholders. Parse that payload; the CSS selectors
+ * stay as fallbacks for older server-rendered layouts.
+ */
+function githubSidebarAbout($) {
+  for (const el of $('script[data-target="react-app.embeddedData"]').toArray()) {
+    try {
+      const about = JSON.parse($(el).text())?.payload?.sidebarAbout;
+      if (about) return about;
+    } catch {
+      // a different embedded payload — keep looking
+    }
+  }
+  return null;
+}
+
+/**
+ * The payload's license is { spdxId: "MIT", name: "MIT License" }. The SPDX
+ * id is the short name callers want, but a repo with a non-standard licence
+ * ships spdxId "NOASSERTION", where the display name is all there is.
+ */
+function githubLicense(license) {
+  if (!license) return null;
+  const spdx = license.spdxId;
+  return (spdx && spdx !== 'NOASSERTION' ? spdx : license.name) || null;
+}
+
+/**
+ * Repo tab counters stamp the exact number in title= ("5,102") and an
+ * abbreviated text ("5.1k"); a counter with nothing to show stamps
+ * title="Not available", so the title is only trusted when it has a digit.
+ */
+function githubCounter($, sel) {
+  const exact = attr($, sel, 'title');
+  return /\d/.test(exact || '') ? exact : text($, sel);
+}
+
 // ── Template definitions ─────────────────────────────────────────────────────
 
 export const TEMPLATES = [
@@ -346,22 +388,31 @@ export const TEMPLATES = [
     description: 'Scrape a GitHub repository page for stars, forks, description, language, topics, and README summary.',
     targetPattern: /github\.com\/[^/]+\/[^/]+\/?$/i,
     extract($) {
+      const about = githubSidebarAbout($);
       return {
         name: text($, 'strong[itemprop="name"] a') || text($, '.repository-content h1'),
         description: attr($, 'meta[property="og:description"]', 'content') || text($, 'p.f4.my-3'),
         stars: text($, '#repo-stars-counter-star') || text($, '[aria-label*="stargazers"]'),
         forks: text($, '#repo-network-counter') || text($, '[aria-label*="forks"]'),
         // React (logged-out) layout has no watchers aria-label; the count is
-        // the <strong> right after the single octicon-eye. Language is a
-        // client-side skeleton on that layout — unrecoverable from static
-        // HTML, so it stays null there (itemprop still works on classic).
+        // the <strong> right after the single octicon-eye.
         watchers: text($, '.octicon-eye + strong') || text($, '[aria-label*="watchers"]'),
+        // Language and the last-push date appear nowhere in the logged-out
+        // page (verified 2026-08-26 across five User-Agents, embedded JSON
+        // included): the client fetches them after load from header-gated
+        // JSON endpoints (/_sidebar, /latest-commit). The selectors below
+        // only fire on older server-rendered layouts; otherwise these two
+        // stay null rather than guessing.
         language: text($, 'span[itemprop="programmingLanguage"]') || text($, '.d-inline-flex[class*="language"]'),
         topics: list($, 'a.topic-tag, a[href^="/topics/"]'),
-        license: text($, 'a[href*="blob/"][href*="LICENSE"]') || text($, '.octicon-law ~ span'),
+        // Never the repo's LICENSE *file* link — its text is the filename,
+        // not the licence name.
+        license: githubLicense(about?.repo?.license) || text($, '.octicon-law ~ span'),
         last_updated: attr($, 'relative-time', 'datetime'),
-        homepage: attr($, 'a[href][rel="noopener noreferrer"]', 'href'),
-        open_issues: text($, '.Counter[aria-label*="issue"]')
+        // When the sidebar payload is present it is authoritative: an empty
+        // website means "no homepage", not "go scrape some external link".
+        homepage: about ? about.website || null : attr($, 'a[href][rel="noopener noreferrer"]', 'href'),
+        open_issues: githubCounter($, '#issues-repo-tab-count') || text($, '.Counter[aria-label*="issue"]')
       };
     }
   },
