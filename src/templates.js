@@ -221,6 +221,18 @@ function githubLicense(license) {
 }
 
 /**
+ * og:description is never just the About text. GitHub appends "Contribute to
+ * owner/repo development by creating an account on GitHub." to it, and that
+ * sentence is the *whole* value on a repo with no description at all. Strip
+ * it; whatever remains is the description, and nothing remaining means the
+ * repo has none.
+ */
+function githubOgDescription($) {
+  const og = attr($, 'meta[property="og:description"]', 'content') || '';
+  return tidy(og.replace(/\s*Contribute to \S+ development by creating an account on GitHub\.?/, ''));
+}
+
+/**
  * Repo tab counters stamp the exact number in title= ("5,102") and an
  * abbreviated text ("5.1k"); a counter with nothing to show stamps
  * title="Not available", so the title is only trusted when it has a digit.
@@ -391,7 +403,12 @@ export const TEMPLATES = [
       const about = githubSidebarAbout($);
       return {
         name: text($, 'strong[itemprop="name"] a') || text($, '.repository-content h1'),
-        description: attr($, 'meta[property="og:description"]', 'content') || text($, 'p.f4.my-3'),
+        // Like homepage: when the sidebar payload is present it is
+        // authoritative, so a repo that set no description reports null
+        // rather than GitHub's "Contribute to ..." boilerplate.
+        description: about
+          ? tidy(about.description)
+          : tidy(text($, 'p.f4.my-3')) || githubOgDescription($),
         stars: text($, '#repo-stars-counter-star') || text($, '[aria-label*="stargazers"]'),
         forks: text($, '#repo-network-counter') || text($, '[aria-label*="forks"]'),
         // React (logged-out) layout has no watchers aria-label; the count is

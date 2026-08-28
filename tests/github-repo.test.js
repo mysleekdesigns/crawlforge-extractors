@@ -11,8 +11,19 @@
  * post-load from header-gated JSON endpoints), so those two stay null there
  * by design; the classic-layout selectors for them are kept as fallbacks.
  *
- * Markup below is condensed from a live capture of github.com/expressjs/express
- * (69.4k stars, 105 open issues, MIT licence, homepage expressjs.com).
+ * Regression (2026-08-28): `description` read og:description first, so every
+ * repo without an About blurb returned GitHub's "Contribute to owner/repo
+ * development by creating an account on GitHub." boilerplate, and every repo
+ * with one returned it polluted (" - owner/repo" appended, or that same
+ * sentence appended, truncated at ~200 chars). The About payload carries the
+ * text verbatim, so it is read first and its silence means "no description".
+ *
+ * Markup below is condensed from live captures (2026-08-28) of
+ * github.com/expressjs/express (69.4k stars, 105 open issues, MIT licence,
+ * homepage expressjs.com), github.com/anthropics/anthropic-sdk-python (no
+ * About description at all) and github.com/facebook/react. `p.f4.my-3` is
+ * absent from all three — it is the classic-layout selector, kept as a
+ * fallback only.
  */
 
 import { test, describe } from 'node:test';
@@ -30,6 +41,7 @@ const embedded = (sidebarAbout) =>
 // Condensed from the live payload — only the fields the template reads.
 const ABOUT = {
   description: 'Fast, unopinionated, minimalist web framework for node.',
+  formattedDescription: 'Fast, unopinionated, minimalist web framework for node.',
   website: 'https://expressjs.com',
   topics: [{ name: 'express' }, { name: 'javascript' }],
   stargazerCount: 69394,
@@ -111,5 +123,49 @@ describe('github-repo fallbacks and honest nulls', () => {
     const data = await run(LIVE);
     assert.equal(data.language, null);
     assert.equal(data.last_updated, null);
+  });
+});
+
+describe('github-repo description is the About text, never the OG boilerplate', () => {
+  // The real tag on the express page: the About text with " - owner/repo" glued on.
+  const OG_SUFFIXED =
+    '<meta property="og:description" content="Fast, unopinionated, minimalist web framework for node. - expressjs/express" />';
+  // The real tag on a repo that set no description — boilerplate and nothing else.
+  const OG_BOILERPLATE =
+    '<meta property="og:description" content="Contribute to anthropics/anthropic-sdk-python development by creating an account on GitHub." />';
+
+  test('the payload description wins over the OG tag', async () => {
+    assert.equal(
+      (await run(LIVE + OG_SUFFIXED)).description,
+      'Fast, unopinionated, minimalist web framework for node.'
+    );
+  });
+
+  test('a repo that set no description reports null, not the "Contribute to" boilerplate', async () => {
+    // anthropics/anthropic-sdk-python: the payload ships no description key.
+    const { description: _drop, ...noDescription } = ABOUT;
+    const data = await run(embedded(noDescription) + OG_BOILERPLATE);
+    assert.equal(data.description, null);
+  });
+
+  test('without the payload, the classic-layout paragraph is read', async () => {
+    const html = '<p class="f4 my-3">Fast, unopinionated, minimalist web framework for node.</p>' + OG_SUFFIXED;
+    assert.equal((await run(html)).description, 'Fast, unopinionated, minimalist web framework for node.');
+  });
+
+  test('with neither, pure boilerplate strips to null rather than being returned', async () => {
+    assert.equal((await run(OG_BOILERPLATE)).description, null);
+  });
+
+  test('with neither, an OG tag with the boilerplate appended keeps the real text', async () => {
+    // The real tag on the react page.
+    const html =
+      '<meta property="og:description" content="The library for web and native user interfaces. Contribute to react/react development by creating an account on GitHub." />';
+    assert.equal((await run(html)).description, 'The library for web and native user interfaces.');
+  });
+
+  test('a description that merely starts with "Contribute" is not mistaken for boilerplate', async () => {
+    const html = '<meta property="og:description" content="Contribute to open source: a beginner\'s guide." />';
+    assert.equal((await run(html)).description, "Contribute to open source: a beginner's guide.");
   });
 });
