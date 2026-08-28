@@ -1,0 +1,86 @@
+{
+  "result_count": 1,
+  "results": [
+    {
+      "addresses": [
+        {
+          "address_1": "76 W MAIN ST STE 104",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "FREEHOLD",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "732-637-5299",
+          "postal_code": "077282148",
+          "state": "NJ",
+          "telephone_number": "326-375-2927"
+        },
+        {
+          "address_1": "18414 US HIGHWAY 281 N STE 104",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "SAN ANTONIO",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "210-495-0343",
+          "postal_code": "782597611",
+          "state": "TX",
+          "telephone_number": "210-495-0222"
+        }
+      ],
+      "basic": {
+        "certification_date": "2024-09-23",
+        "credential": "MD",
+        "enumeration_date": "2011-04-21",
+        "first_name": "SIU-HAN",
+        "last_name": "ABATE",
+        "last_updated": "2024-09-23",
+        "middle_name": "PAOLA",
+        "name_prefix": "Dr.",
+        "sex": "F",
+        "sole_proprietor": "YES",
+        "status": "A"
+      },
+      "created_epoch": "1303427066000",
+      "endpoints": [],
+      "enumeration_type": "NPI-1",
+      "identifiers": [],
+      "last_updated_epoch": "1727105903000",
+      "number": "1871884007",
+      "other_names": [
+        {
+          "code": "1",
+          "first_name": "SIU-HAN",
+          "last_name": "ARTEAGA",
+          "middle_name": "PAOLA",
+          "prefix": "Dr.",
+          "suffix": "--",
+          "type": "Former Name"
+        }
+      ],
+      "practiceLocations": [
+        {
+          "address_1": "1 RIVERVIEW PLZ",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "RED BANK",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "077011864",
+          "state": "NJ",
+          "telephone_number": "844-464-9355"
+        }
+      ],
+      "taxonomies": [
+        {
+          "code": "207Q00000X",
+          "desc": "Family Medicine",
+          "license": "25MA10188100",
+          "primary": true,
+          "state": "NJ",
+          "taxonomy_group": ""
+        }
+      ]
+    }
+  ]
+}

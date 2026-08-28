@@ -1,0 +1,316 @@
+{
+  "offers": [
+    {
+      "city": "Utrecht",
+      "sharing_image": null,
+      "position": 610,
+      "careers_apply_url": "https://jobs.channable.com/o/technical-customer-support-benelux-dutch-speaking-1/c/new",
+      "options_cv": "required",
+      "sharing_description": "Are you passionate about solving complex problems for a diverse range of custome",
+      "on_site": false,
+      "options_cover_letter": "off",
+      "cover_image": null,
+      "locations_question": "What is your preferred work location?",
+      "updated_at": "2026-08-28 12:19:42 UTC",
+      "min_hours_per_week": "32",
+      "slug": "technical-customer-support-benelux-dutch-speaking-1",
+      "max_hours": 40,
+      "location": "Utrecht, Utrecht, Netherlands",
+      "education_code": "bachelor_degree",
+      "published_at": "2026-08-28 11:47:47 UTC",
+      "country_code": "NL",
+      "category_code": "customer_service",
+      "locations_question_required": true,
+      "options_phone": "required",
+      "salary": {
+        "max": "2950",
+        "min": "2850",
+        "period": "month",
+        "currency": "EUR"
+      },
+      "hybrid": true,
+      "department": "Support",
+      "title": "Technical Customer Support Benelux - Dutch speaking",
+      "postal_code": "3512 HL",
+      "max_hours_per_week": "40",
+      "options_salutation": "off",
+      "guid": "f6wvb",
+      "translations": {
+        "en": {
+          "description": "<p><span style=\"color:#000000\">Are you passionate about solving complex problems"
+        }
+      },
+      "description": "<p><span style=\"color:#000000\">Are you passionate about solving complex problems for a diverse range of customers? Do you want to help eCommerce businesses grow by delivering high-",
+      "experience_code": "entry_level",
+      "company_name": "Channable",
+      "tags": [],
+      "state_code": "UT",
+      "created_at": "2026-08-26 13:27:15 UTC",
+      "remote": false,
+      "close_at": null,
+      "state_name": "Utrecht",
+      "locations_question_type": "multiple_choice",
+      "open_questions": [
+        {
+          "id": 4336435,
+          "position": 1,
+          "options": {},
+          "required": true,
+          "body": "Do you speak the Dutch language on a C2 (Native Proficiency) level?",
+          "kind": "boolean",
+          "translations": {
+            "en": {
+              "body": "Do you speak the Dutch language on a C2 (Native Proficiency) level?"
+            }
+          },
+          "open_question_options": []
+        }
+      ],
+      "min_hours": 32,
+      "id": 2723126,
+      "employment_type_code": "fulltime_fixed_term",
+      "dynamic_fields": [],
+      "options_title": "off",
+      "careers_url": "https://jobs.channable.com/o/technical-customer-support-benelux-dutch-speaking-1",
+      "options_photo": "off",
+      "locations": [
+        {
+          "id": 64463,
+          "name": "Utrecht",
+          "state": "Utrecht",
+          "country": "Netherlands",
+          "city": "Utrecht",
+          "translations": {
+            "en": {
+              "name": "Utrecht",
+              "city": "Utrecht",
+              "postal_code": "3512 HL",
+              "street": "Kromme Nieuwegracht 66",
+              "note": null
+            }
+          },
+          "country_code": "NL",
+          "state_code": "UT",
+          "postal_code": "3512 HL",
+          "street": "Kromme Nieuwegracht 66",
+          "note": null
+        }
+      ],
+      "mailbox_email": "job.f6wvb@channable.recruitee.com",
+      "location_question_visible": false,
+      "status": "published",
+      "highlight": null,
+      "sharing_title": "Technical Customer Support Benelux - Dutch speaking",
+      "country": "Netherlands",
+      "requirements": null
+    },
+    {
+      "city": "Utrecht",
+      "sharing_image": null,
+      "position": 608,
+      "careers_apply_url": "https://jobs.channable.com/o/product-manager-core-ai/c/new",
+      "options_cv": "required",
+      "sharing_description": "Deadline for applying: September 2nd at 17:00 CETAre you looking for an exciting",
+      "on_site": false,
+      "options_cover_letter": "off",
+      "cover_image": null,
+      "locations_question": "What is your preferred work location?",
+      "updated_at": "2026-08-24 09:33:01 UTC",
+      "min_hours_per_week": "32",
+      "slug": "product-manager-core-ai",
+      "max_hours": 40,
+      "location": "Utrecht, Utrecht, Netherlands",
+      "education_code": "bachelor_degree",
+      "published_at": "2026-08-19 10:48:22 UTC",
+      "country_code": "NL",
+      "category_code": "internet",
+      "locations_question_required": true,
+      "options_phone": "required",
+      "salary": {
+        "max": "6000",
+        "min": "4500",
+        "period": "month",
+        "currency": "EUR"
+      },
+      "hybrid": true,
+      "department": "Product",
+      "title": "Product Manager - Core AI",
+      "postal_code": "3512 HL",
+      "max_hours_per_week": "40",
+      "options_salutation": "off",
+      "guid": "t8y5h",
+      "translations": {
+        "en": {
+          "description": "<p style=\"text-align:justify;\"><span style=\"color:#121317\">Deadline for applying"
+        }
+      },
+      "description": "<p style=\"text-align:justify;\"><span style=\"color:#121317\">Deadline for applying: September 2nd at 17:00 CET</span></p><p style=\"text-align:justify;\"><span style=\"color:#121317\"><b",
+      "experience_code": "mid_level",
+      "company_name": "Channable",
+      "tags": [],
+      "state_code": "UT",
+      "created_at": "2026-08-19 09:02:14 UTC",
+      "remote": false,
+      "close_at": null,
+      "state_name": "Utrecht",
+      "locations_question_type": "multiple_choice",
+      "open_questions": [
+        {
+          "id": 4316379,
+          "position": 1,
+          "options": {},
+          "required": true,
+          "body": "How did you find out about Channable?",
+          "kind": "string",
+          "translations": {
+            "en": {
+              "body": "How did you find out about Channable?"
+            }
+          },
+          "open_question_options": []
+        }
+      ],
+      "min_hours": 32,
+      "id": 2715078,
+      "employment_type_code": "fulltime_permanent",
+      "dynamic_fields": [],
+      "options_title": "off",
+      "careers_url": "https://jobs.channable.com/o/product-manager-core-ai",
+      "options_photo": "off",
+      "locations": [
+        {
+          "id": 64463,
+          "name": "Utrecht",
+          "state": "Utrecht",
+          "country": "Netherlands",
+          "city": "Utrecht",
+          "translations": {
+            "en": {
+              "name": "Utrecht",
+              "city": "Utrecht",
+              "postal_code": "3512 HL",
+              "street": "Kromme Nieuwegracht 66",
+              "note": null
+            }
+          },
+          "country_code": "NL",
+          "state_code": "UT",
+          "postal_code": "3512 HL",
+          "street": "Kromme Nieuwegracht 66",
+          "note": null
+        }
+      ],
+      "mailbox_email": "job.t8y5h@channable.recruitee.com",
+      "location_question_visible": false,
+      "status": "published",
+      "highlight": null,
+      "sharing_title": "Product Manager - Core AI",
+      "country": "Netherlands",
+      "requirements": "<h4><strong><span style=\"color:#1B1A3A\">Your team</span></strong></h4><p style=\"text-align:justify;\"><span style=\"color:#121317\">You will lead the product strategy for our dedicate"
+    },
+    {
+      "city": "Utrecht",
+      "sharing_image": null,
+      "position": 607,
+      "careers_apply_url": "https://jobs.channable.com/o/technischer-kundensupport-dach-deutschsprachig/c/new",
+      "options_cv": "required",
+      "sharing_description": "Du sprichst fließend Deutsch und hast Spaß daran, komplexe Probleme für eine Vie",
+      "on_site": false,
+      "options_cover_letter": "optional",
+      "cover_image": null,
+      "locations_question": "What is your preferred work location?",
+      "updated_at": "2026-08-24 07:24:00 UTC",
+      "min_hours_per_week": "32",
+      "slug": "technischer-kundensupport-dach-deutschsprachig",
+      "max_hours": 40,
+      "location": "Utrecht, Utrecht, Netherlands",
+      "education_code": "bachelor_degree",
+      "published_at": "2026-08-19 13:55:09 UTC",
+      "country_code": "NL",
+      "category_code": "customer_service",
+      "locations_question_required": true,
+      "options_phone": "required",
+      "salary": {
+        "max": "2950",
+        "min": "2850",
+        "period": "month",
+        "currency": "EUR"
+      },
+      "hybrid": true,
+      "department": "Support",
+      "title": "Technischer Kundensupport DACH - Deutschsprachig",
+      "postal_code": "3512 HL",
+      "max_hours_per_week": "40",
+      "options_salutation": "off",
+      "guid": "hs67b",
+      "translations": {
+        "en": {
+          "description": "<p><span style=\"color:#000000\">Du sprichst fließend Deutsch und hast Spaß daran,"
+        }
+      },
+      "description": "<p><span style=\"color:#000000\">Du sprichst fließend Deutsch und hast Spaß daran, komplexe Probleme für eine Vielzahl von Kunden zu lösen? Du möchtest E-Commerce-Unternehmen durch h",
+      "experience_code": "entry_level",
+      "company_name": "Channable",
+      "tags": [],
+      "state_code": "UT",
+      "created_at": "2026-08-19 08:17:13 UTC",
+      "remote": false,
+      "close_at": null,
+      "state_name": "Utrecht",
+      "locations_question_type": "multiple_choice",
+      "open_questions": [
+        {
+          "id": 4317231,
+          "position": 1,
+          "options": {},
+          "required": false,
+          "body": "Do you speak the German language on a C2 (Native Proficiency) level?",
+          "kind": "boolean",
+          "translations": {
+            "en": {
+              "body": "Do you speak the German language on a C2 (Native Proficiency) level?"
+            }
+          },
+          "open_question_options": []
+        }
+      ],
+      "min_hours": 32,
+      "id": 2714984,
+      "employment_type_code": "fulltime_permanent",
+      "dynamic_fields": [],
+      "options_title": "off",
+      "careers_url": "https://jobs.channable.com/o/technischer-kundensupport-dach-deutschsprachig",
+      "options_photo": "off",
+      "locations": [
+        {
+          "id": 64463,
+          "name": "Utrecht",
+          "state": "Utrecht",
+          "country": "Netherlands",
+          "city": "Utrecht",
+          "translations": {
+            "en": {
+              "name": "Utrecht",
+              "city": "Utrecht",
+              "postal_code": "3512 HL",
+              "street": "Kromme Nieuwegracht 66",
+              "note": null
+            }
+          },
+          "country_code": "NL",
+          "state_code": "UT",
+          "postal_code": "3512 HL",
+          "street": "Kromme Nieuwegracht 66",
+          "note": null
+        }
+      ],
+      "mailbox_email": "job.hs67b@channable.recruitee.com",
+      "location_question_visible": false,
+      "status": "published",
+      "highlight": null,
+      "sharing_title": "Technischer Kundensupport DACH - Deutschsprachig",
+      "country": "Netherlands",
+      "requirements": "<h4><strong><span style=\"color:#000000\">Wer sind wir?</span></strong></h4><p><span style=\"color:#000000\">Teil unseres Teams zu sein bedeutet, mit vielfältigen und sympathischen Men"
+    }
+  ]
+}

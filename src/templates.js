@@ -20,9 +20,31 @@
  * scraping the rendered page, without taking the fetch into its own hands:
  *   resolveUrl(url)      — rewrite the URL the tool should fetch
  *   extractRaw(body,url) — parse the response itself, instead of extract($)
+ *
+ * Two more turn a template into a *list connector*, returning N entities from
+ * one call rather than one entity from one page:
+ *   listUrl(params)       — build the URL to fetch from a plain params object.
+ *                           Throws naming the parameter when a required one is
+ *                           missing.
+ *   extractList(body,url) — parse the response into { items, count, … }.
+ * Defining extractList is the only signal that a template is a list connector;
+ * there is no `kind` field. A list connector may also define
+ * resolveUrl/targetPattern, so a caller can pass a URL instead of params.
+ *
+ * A connector against a key-based API declares it:
+ *   requiresApiKey: true
+ *   credentialRef: 'SOME_ENV_VAR'  — the env var the CONSUMER reads
+ * The registry stays pure and never touches process.env. The key arrives as
+ * params.apiKey, and listUrl throws naming credentialRef when it is absent.
  */
 
 import { load } from 'cheerio';
+
+// Connector families live in their own files — the job-board and government-API
+// sets each carry their own helpers and fixtures, and keeping them here would
+// have made one file the whole package.
+import { ATS_TEMPLATES } from './connectors/ats.js';
+import { GOV_TEMPLATES } from './connectors/gov.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,6 +62,15 @@ function list($, sel) {
 
 function listAttr($, sel, attribute) {
   return $(sel).map((_, el) => $(el).attr(attribute)).get().filter(Boolean);
+}
+
+/** A URL a caller supplied is not guaranteed to be one. Returns null instead of throwing. */
+function safeUrl(url) {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
 }
 
 // ── Shopify helpers ──────────────────────────────────────────────────────────
@@ -88,6 +119,68 @@ function htmlToText(html) {
   if (!html) return null;
   const text = load(`<div>${html}</div>`)('div').text().replace(/\s+/g, ' ').trim();
   return text || null;
+}
+
+/**
+ * One product, from either Shopify endpoint.
+ *
+ * /products/<handle>.json and /collections/<handle>/products.json serve the
+ * same product object with two differences, both handled here rather than by
+ * two copies of this mapping that would drift:
+ *   - the collection endpoint carries a real `available` boolean per variant
+ *     and no inventory counts; the product endpoint is the reverse, which is
+ *     what variantAvailable() already reconciles.
+ *   - neither endpoint is guaranteed to carry price_currency (the collection
+ *     endpoint never does, verified 2026-08-28 against deathwishcoffee.com and
+ *     allbirds.com), so currency is null rather than assumed.
+ */
+function shopifyProductEntity(product) {
+  const variants = (product.variants || []).map(v => ({
+    id: v.id,
+    title: v.title,
+    price: money(v.price),
+    compare_at_price: compareAtPrice(v.compare_at_price),
+    sku: v.sku || null,
+    available: variantAvailable(v),
+    inventory_quantity: typeof v.inventory_quantity === 'number' ? v.inventory_quantity : null,
+    options: [v.option1, v.option2, v.option3].filter(Boolean)
+  }));
+
+  const prices = variants.map(v => Number.parseFloat(v.price)).filter(Number.isFinite);
+  const first = variants[0] || {};
+  const availability = variants.map(v => v.available);
+
+  return {
+    title: product.title || null,
+    vendor: product.vendor || null,
+    product_type: product.product_type || null,
+    handle: product.handle || null,
+    product_id: product.id ?? null,
+
+    // Headline price is the first variant's, matching what the product page
+    // shows before a selection is made.
+    price: first.price ?? null,
+    compare_at_price: first.compare_at_price ?? null,
+    // A compare-at price above the price is what renders as a sale badge.
+    on_sale: first.compare_at_price !== null && first.compare_at_price !== undefined
+      ? Number.parseFloat(first.compare_at_price) > Number.parseFloat(first.price)
+      : false,
+    currency: product.variants?.[0]?.price_currency || null,
+    price_min: prices.length ? String(Math.min(...prices).toFixed(2)) : null,
+    price_max: prices.length ? String(Math.max(...prices).toFixed(2)) : null,
+
+    available: availability.some(a => a === true) ? true
+      : availability.every(a => a === false) ? false
+      : null,
+    variants,
+    options: (product.options || []).map(o => o.name),
+
+    description: htmlToText(product.body_html),
+    tags: normalizeTags(product.tags),
+    images: (product.images || []).map(i => i.src),
+    published_at: product.published_at || null,
+    updated_at: product.updated_at || null
+  };
 }
 
 // ── Amazon helpers ───────────────────────────────────────────────────────────
@@ -287,51 +380,126 @@ export const TEMPLATES = [
         );
       }
 
-      const variants = product.variants.map(v => ({
-        id: v.id,
-        title: v.title,
-        price: money(v.price),
-        compare_at_price: compareAtPrice(v.compare_at_price),
-        sku: v.sku || null,
-        available: variantAvailable(v),
-        inventory_quantity: typeof v.inventory_quantity === 'number' ? v.inventory_quantity : null,
-        options: [v.option1, v.option2, v.option3].filter(Boolean)
-      }));
+      return shopifyProductEntity(product);
+    }
+  },
 
-      const prices = variants.map(v => Number.parseFloat(v.price)).filter(Number.isFinite);
-      const first = variants[0] || {};
-      const availability = variants.map(v => v.available);
+  {
+    id: 'shopify-collection',
+    name: 'Shopify Collection',
+    description:
+      'List every product in a Shopify collection from the store\'s own ' +
+      '/collections/<handle>/products.json endpoint: exact price, compare-at price and stock for ' +
+      'each product, in one call. Same authoritative source as shopify-product, so a collection ' +
+      'and a product page cannot disagree. Pass a collection URL, or the store and collection ' +
+      'handle as params. Shopify serves 30 products per page by default and 250 at most, so a ' +
+      'large collection needs paging.',
+    // Same reasoning as shopify-product: Shopify runs on millions of custom
+    // domains, so the URL shape is the only signal. Bounded so it does not also
+    // claim /collections/<handle>/products/<handle>, which is a product page.
+    targetPattern: /\/collections\/[^/?#]+(?:\/products\.json)?\/?(?:[?#]|$)/i,
+
+    /** Point the fetch at the collection's product listing. */
+    resolveUrl(url) {
+      const parsed = new URL(url);
+      const match = parsed.pathname.match(/^(.*\/collections\/[^/]+?)(?:\/products(?:\.json)?)?\/?$/i);
+      if (!match) return url;
+      parsed.pathname = `${match[1]}/products.json`;
+      // Keep only the two paging params the endpoint understands. sort_by and
+      // filter.* are storefront-rendering concerns the JSON endpoint ignores,
+      // and several stores disallow those URLs in robots.txt.
+      const paging = new URLSearchParams();
+      for (const key of ['limit', 'page']) {
+        if (parsed.searchParams.has(key)) paging.set(key, parsed.searchParams.get(key));
+      }
+      parsed.search = paging.toString();
+      parsed.hash = '';
+      return parsed.toString();
+    },
+
+    /**
+     * Build the listing URL from params instead of a URL.
+     * @param {{ store: string, collection: string, limit?: number, page?: number }} params
+     */
+    listUrl(params = {}) {
+      const { store, collection, limit, page } = params;
+      if (!store) {
+        throw new Error(
+          'shopify-collection requires a "store" parameter: the storefront domain, ' +
+          'e.g. "www.allbirds.com".'
+        );
+      }
+      if (!collection) {
+        throw new Error(
+          'shopify-collection requires a "collection" parameter: the collection handle, ' +
+          'e.g. "mens" from https://www.allbirds.com/collections/mens.'
+        );
+      }
+
+      const origin = /^https?:\/\//i.test(store) ? store : `https://${store}`;
+      const url = new URL(`/collections/${encodeURIComponent(collection)}/products.json`, origin);
+
+      if (limit !== undefined) {
+        const value = Number(limit);
+        // Shopify caps the endpoint at 250 and silently truncates past it —
+        // saying so beats returning 250 rows to a caller who asked for 1000.
+        if (!Number.isInteger(value) || value < 1 || value > 250) {
+          throw new Error(`shopify-collection "limit" must be an integer from 1 to 250, got ${limit}.`);
+        }
+        url.searchParams.set('limit', String(value));
+      }
+      if (page !== undefined) {
+        const value = Number(page);
+        if (!Number.isInteger(value) || value < 1) {
+          throw new Error(`shopify-collection "page" must be an integer of 1 or more, got ${page}.`);
+        }
+        url.searchParams.set('page', String(value));
+      }
+
+      return url.toString();
+    },
+
+    extractList(body, url) {
+      let payload;
+      try {
+        payload = JSON.parse(body);
+      } catch {
+        throw new Error(
+          `Not a Shopify collection endpoint: ${url} did not return JSON. ` +
+          'This template only works on Shopify storefronts.'
+        );
+      }
+
+      if (!payload || !Array.isArray(payload.products)) {
+        throw new Error(
+          `Not a Shopify collection endpoint: ${url} returned JSON without a products array. ` +
+          'This template only works on Shopify storefronts.'
+        );
+      }
+
+      // An unknown collection handle and a page past the end both answer 200
+      // with {"products":[]}, so an empty list is a real answer, not an error.
+      const parsed = safeUrl(url);
+      const requested = Number.parseInt(parsed?.searchParams.get('limit') ?? '', 10);
+      // The store default when no limit is sent, confirmed 2026-08-28.
+      const limit = Number.isInteger(requested) ? requested : 30;
+      const page = Number.parseInt(parsed?.searchParams.get('page') ?? '', 10) || 1;
 
       return {
-        title: product.title || null,
-        vendor: product.vendor || null,
-        product_type: product.product_type || null,
-        handle: product.handle || null,
-        product_id: product.id ?? null,
-
-        // Headline price is the first variant's, matching what the product page
-        // shows before a selection is made.
-        price: first.price ?? null,
-        compare_at_price: first.compare_at_price ?? null,
-        // A compare-at price above the price is what renders as a sale badge.
-        on_sale: first.compare_at_price !== null && first.compare_at_price !== undefined
-          ? Number.parseFloat(first.compare_at_price) > Number.parseFloat(first.price)
-          : false,
-        currency: product.variants[0]?.price_currency || null,
-        price_min: prices.length ? String(Math.min(...prices).toFixed(2)) : null,
-        price_max: prices.length ? String(Math.max(...prices).toFixed(2)) : null,
-
-        available: availability.some(a => a === true) ? true
-          : availability.every(a => a === false) ? false
-          : null,
-        variants,
-        options: (product.options || []).map(o => o.name),
-
-        description: htmlToText(product.body_html),
-        tags: normalizeTags(product.tags),
-        images: (product.images || []).map(i => i.src),
-        published_at: product.published_at || null,
-        updated_at: product.updated_at || null
+        collection: parsed?.pathname.match(/\/collections\/([^/]+)/i)?.[1] ?? null,
+        items: payload.products.map(product => ({
+          ...shopifyProductEntity(product),
+          // A list is only useful if each row is addressable.
+          url: parsed && product.handle
+            ? new URL(`/products/${product.handle}`, parsed.origin).toString()
+            : null
+        })),
+        count: payload.products.length,
+        page,
+        limit,
+        // The endpoint publishes no total, so a full page is the only "there
+        // may be more" signal there is.
+        has_more: payload.products.length === limit
       };
     }
   },
@@ -641,24 +809,76 @@ export const TEMPLATES = [
       };
     }
   }
+,
+
+  ...ATS_TEMPLATES,
+  ...GOV_TEMPLATES
 ];
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 
+/**
+ * Whether a pattern is anchored to a particular host.
+ *
+ * Decided by swapping the host out and re-testing: /amazon\.(com|…)/ stops
+ * matching, shopify-product's /\/products\/[^/?#]+/ keeps matching. Reading the
+ * regex source for a dotted domain instead would misread any pattern that
+ * mentions a file — shopify-collection's own /\/products\.json/ has a dot in it
+ * and names no host at all.
+ */
+function isHostAnchored(pattern, url) {
+  const probe = safeUrl(url);
+  if (!probe) return false;
+  probe.hostname = 'invalid-host';
+  return !pattern.test(probe.toString());
+}
+
 export class TemplateRegistry {
-  constructor() {
-    this._templates = new Map(TEMPLATES.map(t => [t.id, t]));
+  /**
+   * @param {object[]} [templates] — the template set, injectable so a test can
+   *   register a fixture without shipping it.
+   */
+  constructor(templates = TEMPLATES) {
+    this._order = templates;
+    this._templates = new Map(templates.map(t => [t.id, t]));
   }
 
   /**
-   * List all registered template IDs and names.
-   * @returns {{ id: string, name: string, description: string }[]}
+   * List all registered templates. `mode`, `requires_api_key` and
+   * `credential_ref` are derived from the template, never stored on it.
    */
   list() {
-    return TEMPLATES.map(({ id, name, description, targetPattern }) => ({
-      id, name, description,
-      targetPattern: targetPattern.toString()
+    return this._order.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      // A params-only connector may have no URL shape to advertise.
+      targetPattern: t.targetPattern ? t.targetPattern.toString() : null,
+      // extractList is the only signal that a template returns N entities.
+      mode: t.extractList ? 'list' : 'entity',
+      ...(t.requiresApiKey ? { requires_api_key: true } : {}),
+      ...(t.credentialRef ? { credential_ref: t.credentialRef } : {})
     }));
+  }
+
+  /**
+   * Pick the template that handles a URL, or null when none does.
+   *
+   * Deterministic: a template whose pattern names a host outranks one that only
+   * matches a path shape, so amazon-product wins an Amazon URL that happens to
+   * contain /products/. Remaining ties go to registration order.
+   *
+   * @param {string} url
+   * @returns {object|null}
+   */
+  detect(url) {
+    if (typeof url !== 'string' || !url) return null;
+
+    const matches = this._order.filter(t => t.targetPattern?.test(url));
+    if (matches.length < 2) return matches[0] ?? null;
+
+    const hostAnchored = matches.filter(t => isHostAnchored(t.targetPattern, url));
+    return (hostAnchored.length ? hostAnchored : matches)[0];
   }
 
   /**
@@ -681,7 +901,7 @@ export class TemplateRegistry {
   async run(id, body, url, fetchedUrl = url) {
     const template = this.get(id);
     if (!template) {
-      throw new Error(`Unknown template: "${id}". Available: ${TEMPLATES.map(t => t.id).join(', ')}`);
+      throw new Error(`Unknown template: "${id}". Available: ${this._order.map(t => t.id).join(', ')}`);
     }
 
     const data = template.extractRaw
@@ -694,6 +914,40 @@ export class TemplateRegistry {
       url,
       ...(fetchedUrl !== url ? { fetchedUrl } : {}),
       data,
+      extractedAt: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Run a list connector against a fetched response body — N entities from one
+   * call, where run() returns one. Same envelope, plus whichever of the URL and
+   * the params the caller reached the endpoint with.
+   *
+   * @param {string} id
+   * @param {string} body
+   * @param {{ url?: string, params?: object }} [context]
+   * @returns {{ template: string, template_name: string, url?: string, params?: object,
+   *            data: { items: object[], count: number }, extractedAt: string }}
+   */
+  async runList(id, body, { url, params } = {}) {
+    const template = this.get(id);
+    if (!template) {
+      throw new Error(`Unknown template: "${id}". Available: ${this._order.map(t => t.id).join(', ')}`);
+    }
+    if (!template.extractList) {
+      const lists = this._order.filter(t => t.extractList).map(t => t.id).join(', ');
+      throw new Error(
+        `Template "${id}" returns a single entity, not a list. Use run() instead. ` +
+        `List connectors: ${lists || 'none registered'}.`
+      );
+    }
+
+    return {
+      template: id,
+      template_name: template.name,
+      ...(url !== undefined ? { url } : {}),
+      ...(params !== undefined ? { params } : {}),
+      data: template.extractList(body, url),
       extractedAt: new Date().toISOString()
     };
   }

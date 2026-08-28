@@ -1,0 +1,236 @@
+{
+  "result_count": 3,
+  "results": [
+    {
+      "addresses": [
+        {
+          "address_1": "175 W LEXINGTON AVE STE B",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "EL CAJON",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "619-923-5881",
+          "postal_code": "920204454",
+          "state": "CA",
+          "telephone_number": "786-445-2814"
+        },
+        {
+          "address_1": "300 14TH ST APT 531",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "SAN DIEGO",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "619-367-0409",
+          "postal_code": "921017841",
+          "state": "CA",
+          "telephone_number": "786-445-2814"
+        }
+      ],
+      "basic": {
+        "certification_date": "2025-07-12",
+        "credential": "BCCP, APH, RPh, PACS",
+        "enumeration_date": "2020-05-28",
+        "first_name": "TARIQ",
+        "last_name": "AL-SALEH",
+        "last_updated": "2025-07-12",
+        "sex": "M",
+        "sole_proprietor": "NO",
+        "status": "A"
+      },
+      "created_epoch": "1590639520000",
+      "endpoints": [],
+      "enumeration_type": "NPI-1",
+      "identifiers": [
+        {
+          "code": "01",
+          "desc": "Other (non-Medicare)",
+          "identifier": "20A115530",
+          "issuer": "The Blue Shield of California (BSC)",
+          "state": "CA"
+        }
+      ],
+      "last_updated_epoch": "1752308297000",
+      "number": "1982227625",
+      "other_names": [],
+      "practiceLocations": [
+        {
+          "address_1": "300 14TH ST APT 531",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "SAN DIEGO",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "619-367-0409",
+          "postal_code": "921017841",
+          "state": "CA",
+          "telephone_number": "786-445-2814"
+        }
+      ],
+      "taxonomies": [
+        {
+          "code": "183500000X",
+          "desc": "Pharmacist",
+          "license": "Rph82332",
+          "primary": false,
+          "state": "CA",
+          "taxonomy_group": ""
+        },
+        {
+          "code": "1835C0206X",
+          "desc": "Pharmacist, Cardiology",
+          "license": "B10100599",
+          "primary": false,
+          "state": "CA",
+          "taxonomy_group": ""
+        },
+        {
+          "code": "1835P0018X",
+          "desc": "Pharmacist, Pharmacist Clinician (PhC)/ Clinical Pharmacy Specialist",
+          "license": "B10100599",
+          "primary": false,
+          "state": "CA",
+          "taxonomy_group": ""
+        },
+        {
+          "code": "1835P2201X",
+          "desc": "Pharmacist, Ambulatory Care",
+          "license": "11097",
+          "primary": true,
+          "state": "CA",
+          "taxonomy_group": ""
+        }
+      ]
+    },
+    {
+      "addresses": [
+        {
+          "address_1": "10555 VISTA DEL SOL DR STE 115",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "EL PASO",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "915-633-8676",
+          "postal_code": "799257943",
+          "state": "TX",
+          "telephone_number": "915-633-9317"
+        },
+        {
+          "address_1": "10555 VISTA DEL SOL DR STE 115",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "EL PASO",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "915-633-8676",
+          "postal_code": "799257943",
+          "state": "TX",
+          "telephone_number": "915-633-9317"
+        }
+      ],
+      "basic": {
+        "credential": "md",
+        "enumeration_date": "2007-03-16",
+        "first_name": "SRINIVASA",
+        "last_name": "AALURI",
+        "last_updated": "2007-07-09",
+        "middle_name": "REDDY",
+        "name_prefix": "Mr.",
+        "name_suffix": "--",
+        "sex": "M",
+        "sole_proprietor": "NO",
+        "status": "A"
+      },
+      "created_epoch": "1174057287000",
+      "endpoints": [],
+      "enumeration_type": "NPI-1",
+      "identifiers": [
+        {
+          "code": "05",
+          "desc": "MEDICAID",
+          "identifier": "170648301",
+          "issuer": null,
+          "state": "TX"
+        },
+        {
+          "code": "05",
+          "desc": "MEDICAID",
+          "identifier": "170649101",
+          "issuer": null,
+          "state": "TX"
+        }
+      ],
+      "last_updated_epoch": "1183957886000",
+      "number": "1265566509",
+      "other_names": [],
+      "practiceLocations": [],
+      "taxonomies": [
+        {
+          "code": "207Q00000X",
+          "desc": "Family Medicine",
+          "license": "L9590",
+          "primary": true,
+          "state": "TX",
+          "taxonomy_group": ""
+        }
+      ]
+    },
+    {
+      "addresses": [
+        {
+          "address_1": "3124 KINGSTON DR",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "RICHARDSON",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "750824065",
+          "state": "TX",
+          "telephone_number": "214-713-6740"
+        },
+        {
+          "address_1": "3124 KINGSTON DR",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "RICHARDSON",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "750824065",
+          "state": "TX",
+          "telephone_number": "214-713-6740"
+        }
+      ],
+      "basic": {
+        "certification_date": "2026-01-04",
+        "enumeration_date": "2026-01-05",
+        "first_name": "YOSEPH",
+        "last_name": "ABADI",
+        "last_updated": "2026-01-05",
+        "middle_name": "SAHLE",
+        "sex": "M",
+        "sole_proprietor": "YES",
+        "status": "A"
+      },
+      "created_epoch": "1767610805000",
+      "endpoints": [],
+      "enumeration_type": "NPI-1",
+      "identifiers": [],
+      "last_updated_epoch": "1767610805000",
+      "number": "1700742640",
+      "other_names": [],
+      "practiceLocations": [],
+      "taxonomies": [
+        {
+          "code": "207Q00000X",
+          "desc": "Family Medicine",
+          "license": "F12250424",
+          "primary": true,
+          "state": "TX",
+          "taxonomy_group": "193200000X - Multi-Specialty Group"
+        }
+      ]
+    }
+  ]
+}

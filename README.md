@@ -49,6 +49,55 @@ to `extract($)` with a cheerio document otherwise.
 A template that rejects a response as not its own throws — surface that to the
 caller as a bad request, not a server error.
 
+### Picking a template from a URL
+
+```js
+registry.detect('https://www.allbirds.com/collections/mens'); // → shopify-collection
+registry.detect('https://example.com/about');                 // → null
+```
+
+`detect()` matches on the `targetPattern` each template already carried.
+Ranking is deterministic: a pattern that names a host outranks one that only
+matches a path shape, so `amazon-product` wins an Amazon URL that happens to
+contain `/products/`, which `shopify-product` also matches. Remaining ties go
+to registration order.
+
+### List connectors
+
+A template that defines `extractList` returns N entities from one call instead
+of one entity from one page. `listUrl(params)` builds the request from a plain
+object, and `runList()` mirrors `run()`'s envelope:
+
+```js
+const template = registry.get('shopify-collection');
+
+// By params…
+const url = template.listUrl({ store: 'www.allbirds.com', collection: 'mens', limit: 250 });
+// …or from a collection URL the user already has.
+const alsoUrl = template.resolveUrl('https://www.allbirds.com/collections/mens');
+
+const body = await (await fetch(url)).text();
+const { data } = await registry.runList('shopify-collection', body, { url });
+data.items; // one entity per product, same field shape as shopify-product
+data.count; // items.length, unless the source declares a larger total_available
+```
+
+`registry.list()` reports `mode: 'list'` or `'entity'` per template, derived
+from the presence of `extractList` — there is no stored `kind` field.
+
+### Templates that need an API key
+
+A connector against a key-based API declares `requiresApiKey: true` and
+`credentialRef: 'SOME_ENV_VAR'`, surfaced by `list()` as `requires_api_key` and
+`credential_ref`. This package never reads `process.env`: the consumer resolves
+the variable and passes the key in as `params.apiKey`, and `listUrl` throws an
+error naming the variable when it is missing — an actionable message beats a
+401 passed through from someone else's API.
+
+`new TemplateRegistry(templates)` takes an alternative template set, which is
+how the credential path is tested without shipping a connector nobody has a key
+for.
+
 ### Reading a response body
 
 `readBody` decodes with the body's real charset and refuses to buffer past a
@@ -87,12 +136,52 @@ baseline instead of keeping the whole DOM.
 
 ## Templates
 
-`shopify-product` · `amazon-product` · `linkedin-profile` · `github-repo` ·
-`youtube-video` · `tweet` · `reddit-thread` · `hacker-news-front-page` ·
-`producthunt-launch` · `stackoverflow-question` · `npm-package`
+**Pages and products.** `shopify-product` · `shopify-collection` ·
+`amazon-product` · `linkedin-profile` · `github-repo` · `youtube-video` ·
+`tweet` · `reddit-thread` · `hacker-news-front-page` · `producthunt-launch` ·
+`stackoverflow-question` · `npm-package`
+
+**Job boards** (`src/connectors/ats.js`). `greenhouse-jobs` ·
+`lever-postings` · `ashby-jobs` · `workable-jobs` · `recruitee-offers` ·
+`teamtailor-jobs`
+
+**Government APIs** (`src/connectors/gov.js`). `nhtsa-vin` · `npi-provider`
+
+`shopify-collection` is a list connector: it reads a store's own
+`/collections/<handle>/products.json` and returns every product in the
+collection with the same authoritative price, compare-at price and stock that
+`shopify-product` returns for one, so the two cannot disagree. Pass a
+collection URL or `{ store, collection }`. Shopify serves 30 products per page
+by default and 250 at most, so a large collection needs `page`.
+
+The job-board connectors read each platform's own documented public postings
+API, so a board's jobs come back exact rather than parsed out of a rendered
+page. All six normalise onto one job shape — `id`, `title`, `url`, `location`,
+`department`, `team`, `employment_type`, `remote`, `published_at`,
+`updated_at`, `description`, `source` — so two platforms union without
+per-source mapping, and a field the platform does not carry is `null` rather
+than guessed. Pass a board URL or `{ company }`. Greenhouse defaults to
+summary records; `content: true` adds the full HTML descriptions and takes a
+large board past 4 MB. `lever-postings` declares `crawlDelaySeconds: 1`,
+which `api.lever.co/robots.txt` asks for and the calling surface's host rate
+limiter is expected to honour.
+
+`nhtsa-vin` decodes a VIN through the NHTSA vPIC API — the ~154 returned
+fields are curated into a named vehicle shape with the API's empty-string
+"not applicable" normalised to `null`, the full set kept under `raw`, and the
+API's own `ErrorCode`/`ErrorText` surfaced as `decode_errors` rather than
+swallowed, because a partial decode is a real answer. `npi-provider` reads the
+CMS NPI Registry — a public professional registry — and passes its records
+through as published. Neither needs a key.
 
 `reddit-thread` is registered here but reddit.com blocks plain fetchers; the
 REST API steers those callers to its `reddit_search` tool instead.
+
+`smartrecruiters-postings` is deliberately **not** shipped: SmartRecruiters
+documents the endpoint publicly, but `api.smartrecruiters.com/robots.txt`
+disallows everything for every agent except `LinkedInBot`. Reaching it would
+mean overriding robots.txt on every call, which is not a connector's decision
+to make for its caller.
 
 ## Tests
 

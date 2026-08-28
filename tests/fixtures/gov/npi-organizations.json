@@ -1,0 +1,200 @@
+{
+  "result_count": 3,
+  "results": [
+    {
+      "addresses": [
+        {
+          "address_1": "2050 SAW MILL RIVER RD",
+          "address_2": "SUITE 1",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "YORKTOWN HEIGHTS",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "914-455-3104",
+          "postal_code": "105984143",
+          "state": "NY",
+          "telephone_number": "914-455-3101"
+        },
+        {
+          "address_1": "1980 CROMPOND RD",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "CORTLANDT MANOR",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "105674179",
+          "state": "NY",
+          "telephone_number": "914-734-3600"
+        }
+      ],
+      "basic": {
+        "authorized_official_credential": "M.D.",
+        "authorized_official_first_name": "RICHARD",
+        "authorized_official_last_name": "BECKER",
+        "authorized_official_name_prefix": "Dr.",
+        "authorized_official_name_suffix": "--",
+        "authorized_official_telephone_number": "9144553101",
+        "authorized_official_title_or_position": "Medical Director",
+        "enumeration_date": "2006-06-21",
+        "last_updated": "2007-12-03",
+        "organization_name": "BECKER MEDICAL, PC",
+        "organizational_subpart": "NO",
+        "status": "A"
+      },
+      "created_epoch": "1150880200000",
+      "endpoints": [],
+      "enumeration_type": "NPI-2",
+      "identifiers": [],
+      "last_updated_epoch": "1196700413000",
+      "number": "1265478150",
+      "other_names": [
+        {
+          "code": "5",
+          "organization_name": "HOSPITAL MEDICINE ASSOCIATES",
+          "type": "Other Name"
+        }
+      ],
+      "practiceLocations": [],
+      "taxonomies": [
+        {
+          "code": "174400000X",
+          "desc": "Specialist",
+          "license": null,
+          "primary": true,
+          "state": null,
+          "taxonomy_group": "193400000X - Single Specialty Group"
+        }
+      ]
+    },
+    {
+      "addresses": [
+        {
+          "address_1": "529 CENTRAL AVE",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "DUNKIRK",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "140482514",
+          "state": "NY",
+          "telephone_number": "716-366-1111"
+        },
+        {
+          "address_1": "529 CENTRAL AVE",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "DUNKIRK",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "140482514",
+          "state": "NY",
+          "telephone_number": "716-366-1111"
+        }
+      ],
+      "basic": {
+        "authorized_official_first_name": "MARY",
+        "authorized_official_last_name": "LAROWE",
+        "authorized_official_middle_name": "ELIZABETH",
+        "authorized_official_telephone_number": "7163637207",
+        "authorized_official_title_or_position": "CEO",
+        "certification_date": "2020-01-08",
+        "enumeration_date": "2020-01-08",
+        "last_updated": "2020-01-08",
+        "organization_name": "BROOKS-TLC HOSPITAL SYSTEM, INC.",
+        "organizational_subpart": "NO",
+        "status": "A"
+      },
+      "created_epoch": "1578514726000",
+      "endpoints": [],
+      "enumeration_type": "NPI-2",
+      "identifiers": [],
+      "last_updated_epoch": "1578514726000",
+      "number": "1669012597",
+      "other_names": [
+        {
+          "code": "5",
+          "organization_name": "HOSPITALISTS GROUP",
+          "type": "Other Name"
+        }
+      ],
+      "practiceLocations": [],
+      "taxonomies": [
+        {
+          "code": "208M00000X",
+          "desc": "Hospitalist",
+          "license": null,
+          "primary": true,
+          "state": null,
+          "taxonomy_group": "193400000X - Single Specialty Group"
+        }
+      ]
+    },
+    {
+      "addresses": [
+        {
+          "address_1": "44 CARRIAGE HL E",
+          "address_purpose": "MAILING",
+          "address_type": "DOM",
+          "city": "WILLIAMSVILLE",
+          "country_code": "US",
+          "country_name": "United States",
+          "postal_code": "142211541",
+          "state": "NY",
+          "telephone_number": "716-689-4148"
+        },
+        {
+          "address_1": "15 WEBSTER ST",
+          "address_purpose": "LOCATION",
+          "address_type": "DOM",
+          "city": "NORTH TONAWANDA",
+          "country_code": "US",
+          "country_name": "United States",
+          "fax_number": "716-694-0983",
+          "postal_code": "141205816",
+          "state": "NY",
+          "telephone_number": "716-694-1225"
+        }
+      ],
+      "basic": {
+        "authorized_official_credential": "OTR/L",
+        "authorized_official_first_name": "MICHELE",
+        "authorized_official_last_name": "BAUMAN",
+        "authorized_official_middle_name": "ANN",
+        "authorized_official_name_prefix": "Mrs.",
+        "authorized_official_name_suffix": "--",
+        "authorized_official_telephone_number": "7166941225",
+        "authorized_official_title_or_position": "Occupational Therapist",
+        "enumeration_date": "2010-08-03",
+        "last_updated": "2010-08-03",
+        "organization_name": "BUFFALO PSYCHIATRIC CENTER",
+        "organizational_subpart": "NO",
+        "status": "A"
+      },
+      "created_epoch": "1280858230000",
+      "endpoints": [],
+      "enumeration_type": "NPI-2",
+      "identifiers": [],
+      "last_updated_epoch": "1280858230000",
+      "number": "1831403757",
+      "other_names": [
+        {
+          "code": "3",
+          "organization_name": "HOSPITAL",
+          "type": "Doing Business As"
+        }
+      ],
+      "practiceLocations": [],
+      "taxonomies": [
+        {
+          "code": "283Q00000X",
+          "desc": "Psychiatric Hospital",
+          "license": "003406-1",
+          "primary": true,
+          "state": "NY",
+          "taxonomy_group": ""
+        }
+      ]
+    }
+  ]
+}

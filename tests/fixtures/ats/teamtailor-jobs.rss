@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:tt="https://teamtailor.com/locations">
+  <channel>
+    <title>Teamtailor</title>
+    <description>Current job openings</description>
+    <link>https://career.teamtailor.com/jobs</link>
+        <item>
+      <title>Group Financial Controller</title>
+      <description>&lt;h4&gt;Join Teamtailor and Help Shape the Future of Work!!&lt;br&gt;&lt;/h4&gt;&lt;p&gt;Teamtailor is a global Employer Branding and ATS SaaS platform used by over 13,000 companies, 250,000 users, </description>
+      <pubDate>Fri, 24 Jul 2026 13:57:16 +0200</pubDate>
+      <link>https://career.teamtailor.com/jobs/8124573-group-financial-controller</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <guid>3ce2c88b-cbc6-4ae9-8ecb-000466c69037</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Stockholm</tt:name>
+          <tt:address>Östgötagatan 16</tt:address>
+          <tt:zip>116 21</tt:zip>
+          <tt:city>Stockholm</tt:city>
+          <tt:country>Sweden</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Finance</tt:department>
+      <tt:role/>
+      <tt:division/>
+    </item>
+    <item>
+      <title>Partnership Manager - APAC</title>
+      <description>&lt;h3&gt;&lt;strong&gt;Join us to shape the future!&lt;/strong&gt;&lt;/h3&gt;&lt;p&gt;Teamtailor is a global Employer Branding and ATS SaaS platform used by over 13,000 companies, 200,000 users, and </description>
+      <pubDate>Wed, 29 Jul 2026 15:03:12 +0200</pubDate>
+      <link>https://career.teamtailor.com/jobs/8144170-partnership-manager-apac</link>
+      <remoteStatus>none</remoteStatus>
+      <guid>36d9bbe6-6cf5-4c10-b12b-d4bf739777ce</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Sydney</tt:name>
+          <tt:address>WeWork - Office Space &amp; Coworking</tt:address>
+          <tt:zip>2000</tt:zip>
+          <tt:city>Sydney</tt:city>
+          <tt:country>Australia</tt:country>
+        </tt:location>
+        <tt:location>
+          <tt:name>Melbourne</tt:name>
+          <tt:address/>
+          <tt:zip/>
+          <tt:city>Melbourne</tt:city>
+          <tt:country>Australia</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Partnerships</tt:department>
+      <tt:role>Partnerships Manager</tt:role>
+      <tt:division/>
+    </item>
+    <item>
+      <title>Customer Support Agent - Dutch/English Speaking</title>
+      <description>&lt;h4&gt;&lt;span&gt;&lt;strong id="docs-internal-guid-1bae7a1b-7fff-1201-ba6a-398bf8124bde"&gt;Join us to shape the future!&lt;/strong&gt;&lt;/span&gt;&lt;/h4&gt;&lt;p&gt;&lt;span&gt;Teamtailor is a</description>
+      <pubDate>Mon, 22 Jun 2026 16:45:21 +0200</pubDate>
+      <link>https://career.teamtailor.com/jobs/7951948-customer-support-agent-dutch-english-speaking</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <guid>f40addc7-d9ec-4535-bf88-3e12a7c96dbd</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Stockholm</tt:name>
+          <tt:address>Östgötagatan 16</tt:address>
+          <tt:zip>116 21</tt:zip>
+          <tt:city>Stockholm</tt:city>
+          <tt:country>Sweden</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Customer Support</tt:department>
+      <tt:role>Customer Support Agent</tt:role>
+      <tt:division/>
+    </item>
+  </channel>
+</rss>

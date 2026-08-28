@@ -1,0 +1,39 @@
+{
+  "Count": 1,
+  "Message": "Results returned successfully. NOTE: Any missing decoded values should be interpreted as NHTSA does not have data on the specific variable. Missing value should NOT be interpreted as an indication that a feature or technology is unavailable for a vehicle.",
+  "SearchCriteria": "VIN(s): NOTAREALVIN12345",
+  "Results": [
+    {
+      "AdditionalErrorText": "Invalid character(s): 2:O, 9:V, 10:I.",
+      "BodyClass": "",
+      "DisplacementL": "",
+      "Doors": "",
+      "DriveType": "",
+      "EngineConfiguration": "",
+      "EngineCylinders": "",
+      "EngineHP": "",
+      "EngineManufacturer": "",
+      "EngineModel": "",
+      "ErrorCode": "6,7,11,400",
+      "ErrorText": "6 - Incomplete VIN; 7 - Manufacturer is not registered with NHTSA for sale or importation in the U.S. for use on U.S roads; Please contact the manufacturer directly for more information; 11 - Incorrect Model Year - Position 10 does not match valid model year codes (I, O, Q, U, Z, 0). Decoded data may not be accurate.; 400 - Invalid Characters Present",
+      "FuelTypePrimary": "",
+      "FuelTypeSecondary": "",
+      "GVWR": "",
+      "Make": "",
+      "Manufacturer": "",
+      "Model": "",
+      "ModelYear": "",
+      "PlantCity": "",
+      "PlantCountry": "",
+      "PlantState": "",
+      "Series": "",
+      "SuggestedVIN": "N!TAREAL!!N12345",
+      "TransmissionSpeeds": "",
+      "TransmissionStyle": "",
+      "Trim": "",
+      "VIN": "NOTAREALVIN12345",
+      "VehicleDescriptor": "NOTAREAL*IN",
+      "VehicleType": ""
+    }
+  ]
+}

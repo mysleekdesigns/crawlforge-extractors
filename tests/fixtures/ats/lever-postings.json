@@ -1,0 +1,153 @@
+[
+  {
+    "additionalPlain": "you will never find a job better than this one!!!\n\n\nLever builds modern recruiting software for teams to source, interview, and hire top talent. Our team strives to set a new bar f",
+    "additional": "<div>you will never find a job better than this one!!!</div><div><br></div><div>Lever builds modern recruiting software for teams to source, interview, and hire top talent. Our tea",
+    "categories": {
+      "commitment": "Regular Full Time (Salary)",
+      "department": "Customer Success",
+      "location": "Arlington, TX",
+      "team": "Professional Services",
+      "allLocations": [
+        "Arlington, TX"
+      ]
+    },
+    "createdAt": 1553186035299,
+    "descriptionPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "description": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "id": "33538a2f-d27d-4a96-8f05-fa4b0e4d940e",
+    "lists": [
+      {
+        "text": "Qualifications",
+        "content": "<li>be smart</li><li>be very smart</li>"
+      }
+    ],
+    "text": "AbelsonTaylor Writer",
+    "country": "US",
+    "workplaceType": "hybrid",
+    "opening": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "openingPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "descriptionBody": "<div>this job is AMAAAAAAAAAAAAZING!</div>",
+    "descriptionBodyPlain": "this job is AMAAAAAAAAAAAAZING!\n",
+    "hostedUrl": "https://jobs.lever.co/leverdemo/33538a2f-d27d-4a96-8f05-fa4b0e4d940e",
+    "applyUrl": "https://jobs.lever.co/leverdemo/33538a2f-d27d-4a96-8f05-fa4b0e4d940e/apply"
+  },
+  {
+    "additionalPlain": "afafeafd\n",
+    "additional": "<div>afafeafd</div>",
+    "categories": {
+      "department": "Business Development",
+      "location": "Amsterdam, Netherlands",
+      "team": "Customer Success",
+      "allLocations": [
+        "Amsterdam, Netherlands"
+      ]
+    },
+    "createdAt": 1574697610709,
+    "descriptionPlain": "aegaegdagdag\n",
+    "description": "<div>aegaegdagdag</div>",
+    "id": "c559265a-55ec-4f75-ac56-78290081f6e7",
+    "lists": [
+      {
+        "text": "",
+        "content": "\n<li>1</li>\n<li>2</li>\n<li>3</li>\n<li>&nbsp;</li>\n"
+      }
+    ],
+    "salaryRange": {
+      "min": 10000,
+      "max": 125000,
+      "currency": "USD",
+      "interval": "per-year-salary"
+    },
+    "salaryDescription": "<div>afaf</div>",
+    "salaryDescriptionPlain": "afaf\n",
+    "text": "Account Executive",
+    "country": "NL",
+    "workplaceType": "remote",
+    "opening": "",
+    "openingPlain": "",
+    "descriptionBody": "<div>aegaegdagdag</div>",
+    "descriptionBodyPlain": "aegaegdagdag\n",
+    "hostedUrl": "https://jobs.lever.co/leverdemo/c559265a-55ec-4f75-ac56-78290081f6e7",
+    "applyUrl": "https://jobs.lever.co/leverdemo/c559265a-55ec-4f75-ac56-78290081f6e7/apply"
+  },
+  {
+    "additionalPlain": "Lever builds modern recruiting software for teams to source, interview, and hire top talent. Our team strives to set a new bar for enterprise software with modern, well-designed, r",
+    "additional": "<div>Lever builds modern recruiting software for teams to source, interview, and hire top talent. Our team strives to set a new bar for enterprise software with modern, well-design",
+    "categories": {
+      "department": "Sales",
+      "location": "Bombay, MH",
+      "team": "Account Executive",
+      "allLocations": [
+        "Bombay, MH"
+      ]
+    },
+    "createdAt": 1558041148927,
+    "descriptionPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "description": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "id": "1897fca1-502e-4511-b279-de479e99fbea",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<li>Work with customers </li><li>x</li><li>y</li><li>z</li><li><br></li>"
+      }
+    ],
+    "text": "Account Executive",
+    "country": "IN",
+    "workplaceType": "unspecified",
+    "opening": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "openingPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "descriptionBody": "<div>Add all your text here.</div>",
+    "descriptionBodyPlain": "Add all your text here.\n",
+    "hostedUrl": "https://jobs.lever.co/leverdemo/1897fca1-502e-4511-b279-de479e99fbea",
+    "applyUrl": "https://jobs.lever.co/leverdemo/1897fca1-502e-4511-b279-de479e99fbea/apply"
+  },
+  {
+    "additionalPlain": "IS THIS ROLE NOT AN EXACT FIT? \nSign up to stay in touch, we’ll let you know when we have new positions on the team.\n\n\nLever builds modern recruiting software for teams to source, ",
+    "additional": "<div><span style=\"font-size: 18px;\">IS THIS ROLE NOT AN EXACT FIT?&nbsp;</span></div><div><a href=\"https://www.lever.co/careers-signup\">Sign up to stay in touch, we’ll let you know",
+    "categories": {
+      "team": "Sales",
+      "allLocations": []
+    },
+    "createdAt": 1556123484732,
+    "descriptionPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "description": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "id": "79eda854-d6ba-4e73-9eb0-524daefed2d8",
+    "lists": [
+      {
+        "text": "THE SKILL SET",
+        "content": "<li>1-2 years of closing experience in a SaaS technology company is a must (bonu"
+      }
+    ],
+    "text": "Account Executive",
+    "workplaceType": "unspecified",
+    "opening": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "openingPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "descriptionBody": "<div><br></div><div><span style=\"font-size: 18px;\">A BIT ABOUT US</span></div><div>Lever was founded seven years ago to tackle the most strategic challenge that companies face: how",
+    "descriptionBodyPlain": "\nA BIT ABOUT US\nLever was founded seven years ago to tackle the most strategic challenge that companies face: how to recruit and hire top talent. We’re building the next generation",
+    "country": null,
+    "hostedUrl": "https://jobs.lever.co/leverdemo/79eda854-d6ba-4e73-9eb0-524daefed2d8",
+    "applyUrl": "https://jobs.lever.co/leverdemo/79eda854-d6ba-4e73-9eb0-524daefed2d8/apply"
+  },
+  {
+    "additionalPlain": "Lever builds modern recruiting software for teams to source, interview, and hire top talent. Our team strives to set a new bar for enterprise software with modern, well-designed, r",
+    "additional": "<div>Lever builds modern recruiting software for teams to source, interview, and hire top talent. Our team strives to set a new bar for enterprise software with modern, well-design",
+    "categories": {
+      "level": "Senior",
+      "allLocations": []
+    },
+    "createdAt": 1445149566399,
+    "descriptionPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "description": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "id": "6d94d2c9-3c9d-415b-b457-281a68d1f6f4",
+    "lists": [],
+    "text": "Apprentice Electrician",
+    "workplaceType": "unspecified",
+    "opening": "<div>Welcome to the <b>Demo Job Listing</b> for Lever! This is a fictional job created solely for demonstration purposes and is <b>not an actual open position</b>. We’ve crafted th",
+    "openingPlain": "Welcome to the Demo Job Listing for Lever! This is a fictional job created solely for demonstration purposes and is not an actual open position. We’ve crafted this listing to showc",
+    "descriptionBody": "<div>Jump into an empowered role doing end-to-end feature development.  You’ll be familiar with all parts of our stack—most notably our homegrown, open source web framework, DerbyJ",
+    "descriptionBodyPlain": "Jump into an empowered role doing end-to-end feature development.  You’ll be familiar with all parts of our stack—most notably our homegrown, open source web framework, DerbyJS. No",
+    "country": null,
+    "hostedUrl": "https://jobs.lever.co/leverdemo/6d94d2c9-3c9d-415b-b457-281a68d1f6f4",
+    "applyUrl": "https://jobs.lever.co/leverdemo/6d94d2c9-3c9d-415b-b457-281a68d1f6f4/apply"
+  }
+]

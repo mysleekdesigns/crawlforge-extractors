@@ -1,0 +1,249 @@
+{
+  "products": [
+    {
+      "id": 7205191974992,
+      "title": "Men's Dasher NZ - Anthracite (Dark Anthracite Sole)",
+      "handle": "mens-dasher-nz-anthracite",
+      "body_html": "<p>A new take on our fan-favorite Dasher, made for busy days and spontaneous plans. Lightweight, breathable comfort keeps you cool as you move, with added heel protection where it counts. Fast when you want. Comfortable always.</p>",
+      "published_at": "2026-08-24T09:53:01-07:00",
+      "created_at": "2025-08-06T18:54:33-07:00",
+      "updated_at": "2026-08-28T13:54:23-07:00",
+      "vendor": "Allbirds",
+      "product_type": "Shoes",
+      "tags": [
+        "allbirds::carbon-score => undefined",
+        "allbirds::cfId => color-ec0dcc8441508c674c885b8c8a990cfa",
+        "allbirds::complete => true",
+        "allbirds::edition => limited",
+        "allbirds::gender => mens",
+        "allbirds::hue => grey",
+        "allbirds::master => mens-dasher-nz",
+        "allbirds::material => tree",
+        "allbirds::price-tier => msrp",
+        "allbirds::silhouette => dasher",
+        "FLEX3818571 (PL 553696876312)",
+        "loop::returnable => true",
+        "OOS DNS",
+        "WAVE 2 WCDC",
+        "YCRF_mens-perform-shoes",
+        "YGroup_ygroup_mens-dasher-nz"
+      ],
+      "variants": [
+        {
+          "id": 41271176757328,
+          "title": "8",
+          "option1": "8",
+          "option2": null,
+          "option3": null,
+          "sku": "A12417M080",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "140.00",
+          "grams": 914,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7205191974992,
+          "created_at": "2025-08-06T18:54:33-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        },
+        {
+          "id": 41271176790096,
+          "title": "8.5",
+          "option1": "8.5",
+          "option2": null,
+          "option3": null,
+          "sku": "A12417M085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "140.00",
+          "grams": 927,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 7205191974992,
+          "created_at": "2025-08-06T18:54:33-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        },
+        {
+          "id": 41271176822864,
+          "title": "9",
+          "option1": "9",
+          "option2": null,
+          "option3": null,
+          "sku": "A12417M090",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "140.00",
+          "grams": 936,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 7205191974992,
+          "created_at": "2025-08-06T18:54:33-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35670548119632,
+          "created_at": "2026-01-20T14:26:43-08:00",
+          "position": 1,
+          "updated_at": "2026-01-20T14:26:45-08:00",
+          "product_id": 7205191974992,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/1104/4168/files/A12416_26Q1_Dasher-NZ-Anthracite-Dark-Anthr_PDP_LEFT.png?v=1768948005",
+          "width": 4000,
+          "height": 4000
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "8",
+            "8.5",
+            "9",
+            "9.5",
+            "10",
+            "10.5",
+            "11",
+            "11.5",
+            "12",
+            "12.5",
+            "13",
+            "14",
+            "15"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7205207670864,
+      "title": "Men's Dasher NZ - Natural Black (Blizzard Sole)",
+      "handle": "mens-dasher-nz-natural-black-blizzard",
+      "body_html": "<p>A new take on our fan-favorite Dasher, made for busy days and spontaneous plans. Lightweight, breathable comfort keeps you cool as you move, with added heel protection where it counts. Fast when you want. Comfortable always.</p>",
+      "published_at": "2026-06-16T11:18:45-07:00",
+      "created_at": "2025-08-06T22:59:23-07:00",
+      "updated_at": "2026-08-28T13:54:23-07:00",
+      "vendor": "Allbirds",
+      "product_type": "Shoes",
+      "tags": [
+        "allbirds::carbon-score => undefined",
+        "allbirds::cfId => color-41476de34775f4c7236d44a1b17c21bf",
+        "allbirds::complete => true",
+        "allbirds::edition => classic",
+        "allbirds::gender => mens",
+        "allbirds::hue => black",
+        "allbirds::master => mens-dasher-nz",
+        "allbirds::material => tree",
+        "allbirds::price-tier => msrp",
+        "allbirds::silhouette => dasher",
+        "DNAM BRANDS",
+        "loop::returnable => true",
+        "SF OUTLET INVENTORY",
+        "WAVE 2 ECDC",
+        "WAVE 2 WCDC",
+        "YCRF_mens-perform-shoes",
+        "YGroup_ygroup_mens-dasher-nz"
+      ],
+      "variants": [
+        {
+          "id": 41271265951824,
+          "title": "8",
+          "option1": "8",
+          "option2": null,
+          "option3": null,
+          "sku": "A12647M080",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "140.00",
+          "grams": 914,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7205207670864,
+          "created_at": "2025-08-06T22:59:23-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        },
+        {
+          "id": 41271265984592,
+          "title": "8.5",
+          "option1": "8.5",
+          "option2": null,
+          "option3": null,
+          "sku": "A12647M085",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "140.00",
+          "grams": 927,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 7205207670864,
+          "created_at": "2025-08-06T22:59:23-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        },
+        {
+          "id": 41271266017360,
+          "title": "9",
+          "option1": "9",
+          "option2": null,
+          "option3": null,
+          "sku": "A12647M090",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "140.00",
+          "grams": 936,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 7205207670864,
+          "created_at": "2025-08-06T22:59:23-07:00",
+          "updated_at": "2026-08-28T13:54:23-07:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35715434840144,
+          "created_at": "2026-01-28T09:48:17-08:00",
+          "position": 1,
+          "updated_at": "2026-01-28T09:48:20-08:00",
+          "product_id": 7205207670864,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/1104/4168/files/A12651_26Q1_Dasher-NZ-Natural-Black-Blizzard_PDP_LEFT.png?v=1769622500",
+          "width": 4000,
+          "height": 4000
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "8",
+            "8.5",
+            "9",
+            "9.5",
+            "10",
+            "10.5",
+            "11",
+            "11.5",
+            "12",
+            "12.5",
+            "13",
+            "14",
+            "15"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "products": [
+    {
+      "id": 7361969684535,
+      "title": "2026 Death Wish Coffee Mug",
+      "handle": "2026-death-wish-coffee-mug",
+      "body_html": "<h4>Mugs up to 2026. </h4>\n<p>A symbol of new beginnings fueled by coffee strong enough to wake the dead (or just the dead inside), this limited-edition, handcrafted mug boasts a never-before-seen tri-color glaze and new mug shape designed in collaboration with Deneen Pottery.</p>\n<p>The perfect addition to your growing mug collection or even the start of something new, it also comes packaged in a custom display box for the first time ever.</p>\n<p><strong>LIMITED TIME OFFER:</strong> Get 30% off a bag/box of coffee or canned lattes with your purchase of the 2026 Mug. Discount automatically applied in cart—only valid on one coffee item.</p>",
+      "published_at": "2025-12-31T08:49:09-05:00",
+      "created_at": "2025-10-24T11:04:05-04:00",
+      "updated_at": "2026-08-28T16:55:06-04:00",
+      "vendor": "Deneen Pottery",
+      "product_type": "Mugs",
+      "tags": [
+        "HCM",
+        "Merch",
+        "Mug",
+        "Sale",
+        "Website Exclusive Sale"
+      ],
+      "variants": [
+        {
+          "id": 41956717559863,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "UMDWYM26K",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "34.20",
+          "grams": 794,
+          "compare_at_price": "38.00",
+          "position": 1,
+          "product_id": 7361969684535,
+          "created_at": "2025-10-24T11:04:05-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 34664801632311,
+          "created_at": "2025-12-17T16:16:50-05:00",
+          "position": 1,
+          "updated_at": "2026-01-08T08:43:59-05:00",
+          "product_id": 7361969684535,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0271/7209/files/DeathWishCoffee_December2025_Product_Mug_Front_Web.jpg?v=1767879839",
+          "width": 1000,
+          "height": 1000
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7469535264823,
+      "title": "All-American Tank",
+      "handle": "all-american-tank",
+      "body_html": "<h4>Life, liberty and the pursuit of strong coffee.</h4>\n<p>Leave the days of ripping the sleeves off an old tee in the past and celebrate 250 years of American independence with a limited-edition tank as bold as the coffee that fuels you.<meta charset=\"utf-8\"></p>\n<p>Made for those who refuse to settle for weak coffee, weak opinions or being told what they can't do, each tank features a one-of-a-kind red, white and blue tie-dye pattern and a custom Death Wish Coffee logo inspired by the iconic image of George Washington crossing the Delaware.</p>\n<p>If that doesn't scream \"'Merica,\" we're not sure what does.</p>",
+      "published_at": "2026-07-04T07:17:47-04:00",
+      "created_at": "2026-06-15T13:35:58-04:00",
+      "updated_at": "2026-08-28T16:55:06-04:00",
+      "vendor": "Planet Apparel",
+      "product_type": "Apparel",
+      "tags": [
+        "Americana",
+        "Apparel",
+        "Men",
+        "Merch",
+        "Unisex",
+        "Women"
+      ],
+      "variants": [
+        {
+          "id": 42272775340087,
+          "title": "S",
+          "option1": "S",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT02",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "30.00",
+          "grams": 128,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        },
+        {
+          "id": 42272775372855,
+          "title": "M",
+          "option1": "M",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT03",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "30.00",
+          "grams": 142,
+          "compare_at_price": null,
+          "position": 2,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        },
+        {
+          "id": 42272775405623,
+          "title": "L",
+          "option1": "L",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT04",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "30.00",
+          "grams": 166,
+          "compare_at_price": null,
+          "position": 3,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        },
+        {
+          "id": 42272775438391,
+          "title": "XL",
+          "option1": "XL",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT05",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "30.00",
+          "grams": 178,
+          "compare_at_price": null,
+          "position": 4,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        },
+        {
+          "id": 42272775471159,
+          "title": "2XL",
+          "option1": "2XL",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT06",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "30.00",
+          "grams": 209,
+          "compare_at_price": null,
+          "position": 5,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        },
+        {
+          "id": 42272775503927,
+          "title": "3XL",
+          "option1": "3XL",
+          "option2": null,
+          "option3": null,
+          "sku": "UTRWBT07",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "30.00",
+          "grams": 209,
+          "compare_at_price": null,
+          "position": 6,
+          "product_id": 7469535264823,
+          "created_at": "2026-06-15T13:35:58-04:00",
+          "updated_at": "2026-08-28T16:55:06-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 35386839597111,
+          "created_at": "2026-07-04T06:44:24-04:00",
+          "position": 1,
+          "updated_at": "2026-07-04T06:44:26-04:00",
+          "product_id": 7469535264823,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0271/7209/files/DeathWishCoffee_July26_Product_Tank_Front_Web2.jpg?v=1783161866",
+          "width": 1500,
+          "height": 1500
+        }
+      ],
+      "options": [
+        {
+          "name": "Size",
+          "position": 1,
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL",
+            "2XL",
+            "3XL"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=7532733",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3336216,
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "metadata": null,
+      "id": 7532733,
+      "updated_at": "2026-08-25T17:40:40-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, AI Sales",
+      "company_name": "Stripe",
+      "first_published": "2026-02-03T15:19:01-05:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h2&gt;Who we are&lt;/h2&gt;\n&lt;h3&gt;About Stripe&lt;/h3&gt;\n&lt;p&gt;Stripe is a financial infrastructure platform for businesses. Millions of companies - from the world’s la",
+      "departments": [
+        {
+          "id": 81430,
+          "name": "1175 Enterprise - Account Executives (NA)",
+          "child_ids": [],
+          "parent_id": 81961
+        }
+      ],
+      "offices": [
+        {
+          "id": 65234,
+          "name": "US",
+          "location": null,
+          "child_ids": [
+            89623,
+            249942
+          ],
+          "parent_id": 673
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/7532733/ai_opt_out"
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=8041655",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3485614,
+      "location": {
+        "name": "Dublin, Ireland"
+      },
+      "metadata": null,
+      "id": 8041655,
+      "updated_at": "2026-08-18T17:57:25-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Product Manager, E-Invoicing",
+      "company_name": "Stripe",
+      "first_published": "2026-07-15T07:01:45-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h2&gt;&lt;strong&gt;About Stripe&lt;/strong&gt;&lt;/h2&gt;\n&lt;p&gt;Stripe is a financial infrastructure platform for businesses. Millions of companies — from the world&#39;s l",
+      "departments": [
+        {
+          "id": 73922,
+          "name": "8415 Revenue and Finance Automation",
+          "child_ids": [],
+          "parent_id": 88206
+        }
+      ],
+      "offices": [
+        {
+          "id": 276730,
+          "name": "ES-Barcelona",
+          "location": null,
+          "child_ids": [],
+          "parent_id": 87001
+        },
+        {
+          "id": 87011,
+          "name": "Ireland Locations",
+          "location": null,
+          "child_ids": [
+            80459,
+            80460
+          ],
+          "parent_id": 17446
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8041655/ai_opt_out"
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=8157577",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3456795,
+      "location": {
+        "name": "San Francisco, CA; New York, NY"
+      },
+      "metadata": null,
+      "id": 8157577,
+      "updated_at": "2026-08-25T16:04:02-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, Strategic Platform Partnerships",
+      "company_name": "Stripe",
+      "first_published": "2026-08-25T16:04:02-04:00",
+      "language": "en",
+      "application_deadline": null,
+      "content": "&lt;h2&gt;&lt;strong&gt;Who we are &lt;/strong&gt;&lt;/h2&gt;\n&lt;h3&gt;&lt;strong&gt;About Stripe&lt;/strong&gt;&lt;/h3&gt;\n&lt;p&gt;&lt;span style=&quot;font-weight: 400;&quot;&g",
+      "departments": [
+        {
+          "id": 336772,
+          "name": "1652 Platforms - Account Executives (NA)",
+          "child_ids": [],
+          "parent_id": 81961
+        }
+      ],
+      "offices": [
+        {
+          "id": 65234,
+          "name": "US",
+          "location": null,
+          "child_ids": [
+            89623,
+            249942
+          ],
+          "parent_id": 673
+        }
+      ],
+      "ai_disclaimer": null,
+      "include_ai_disclaimer": false,
+      "ai_opt_out_request_url": "http://app.greenhouse.io/ai_opt_out_request/job_post/8157577/ai_opt_out"
+    }
+  ],
+  "meta": {
+    "total": 571
+  }
+}

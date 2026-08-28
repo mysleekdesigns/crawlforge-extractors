@@ -1,0 +1,60 @@
+{
+  "jobs": [
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=7532733",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "education": "education_required",
+      "internal_job_id": 3336216,
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "metadata": null,
+      "id": 7532733,
+      "updated_at": "2026-08-25T17:40:40-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, AI Sales",
+      "company_name": "Stripe",
+      "first_published": "2026-02-03T15:19:01-05:00",
+      "language": "en",
+      "application_deadline": null
+    },
+    {
+      "absolute_url": "https://stripe.com/jobs/search?gh_jid=8157577",
+      "data_compliance": [
+        {
+          "type": "gdpr",
+          "requires_consent": false,
+          "requires_processing_consent": false,
+          "requires_retention_consent": false,
+          "retention_period": null,
+          "demographic_data_consent_applies": false
+        }
+      ],
+      "internal_job_id": 3456795,
+      "location": {
+        "name": "San Francisco, CA; New York, NY"
+      },
+      "metadata": null,
+      "id": 8157577,
+      "updated_at": "2026-08-25T16:04:02-04:00",
+      "requisition_id": "See Opening ID",
+      "title": "Account Executive, Strategic Platform Partnerships",
+      "company_name": "Stripe",
+      "first_published": "2026-08-25T16:04:02-04:00",
+      "language": "en",
+      "application_deadline": null
+    }
+  ],
+  "meta": {
+    "total": 571
+  }
+}
