@@ -904,6 +904,16 @@ export class TemplateRegistry {
       throw new Error(`Unknown template: "${id}". Available: ${this._order.map(t => t.id).join(', ')}`);
     }
 
+    // The mirror of runList()'s guard. Without it a list connector reaches
+    // template.extract, which it does not define, and the caller gets
+    // "template.extract is not a function" instead of being told which method
+    // to call.
+    if (!template.extractRaw && !template.extract) {
+      throw new Error(
+        `Template "${id}" returns a list, not a single entity. Use runList() instead.`
+      );
+    }
+
     const data = template.extractRaw
       ? template.extractRaw(body, url)
       : template.extract(load(body));

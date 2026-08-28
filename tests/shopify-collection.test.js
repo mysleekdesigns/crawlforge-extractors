@@ -270,11 +270,12 @@ describe('shopify-collection registration', () => {
     assert.equal(result.data.count, 2);
   });
 
-  test('run() refuses it — a list connector has no single entity to return', async () => {
+  test('run() refuses it, naming the method to call instead', async () => {
+    // It used to reject with "template.extract is not a function", which names
+    // nothing the caller can act on. runList() has always guarded this way.
     await assert.rejects(
       () => registry.run('shopify-collection', ALLBIRDS, ALLBIRDS_URL),
-      TypeError,
-      'extractRaw and extract are both absent'
+      /returns a list, not a single entity\. Use runList\(\) instead/
     );
   });
 });
