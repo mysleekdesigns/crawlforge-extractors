@@ -176,4 +176,43 @@ export declare function structuralSimilarity(
   current: Partial<StructureSignature> | null | undefined
 ): number;
 
+/** One embedded-state payload a page carries, as reported in `found`. */
+export interface EmbeddedStateSource {
+  /** Path-safe key this payload is addressed by, e.g. "next_data". */
+  name: string;
+  /** The raw thing it was read from, e.g. "__NEXT_DATA__", "self.__next_f". */
+  variable: string;
+  /** Serialized size of this payload alone. */
+  bytes: number;
+  /** Present when the shape needs explaining (RSC rows, json_scripts blocks). */
+  note?: string;
+}
+
+export interface EmbeddedStateResult {
+  /** Payloads keyed by `name`; empty when the page ships no readable state. */
+  data: Record<string, unknown>;
+  found: EmbeddedStateSource[];
+  /** Sources seen but not parsed, and blocks that were not valid JSON. */
+  warnings: string[];
+}
+
+/**
+ * Find the JSON state a page already ships in its own HTML: __NEXT_DATA__,
+ * RSC flight chunks (self.__next_f), __NUXT__, __APOLLO_STATE__,
+ * __INITIAL_STATE__, __PRELOADED_STATE__ and <script type="application/json">.
+ *
+ * Pass the RAW html. A script-stripped document has nothing left to read.
+ */
+export declare function extractEmbeddedState(rawHtml: string): EmbeddedStateResult;
+
+/** Split a path into its segments. Dotted keys and array indexes only. */
+export declare function parseJsonPath(path: string): string[];
+
+/**
+ * Resolve a path against a parsed object. Not JSONPath: no wildcards, filters,
+ * slices or recursive descent. Throws naming the keys that were available at
+ * the point it stopped.
+ */
+export declare function selectJsonPath(root: unknown, path: string): unknown;
+
 export default TemplateRegistry;

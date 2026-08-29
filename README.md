@@ -1,7 +1,8 @@
 # crawlforge-extractors
 
 Extraction logic shared by the [CrawlForge](https://www.crawlforge.dev) MCP server and REST API:
-site-specific scrape templates, response body reading, and structural fingerprinting.
+site-specific scrape templates, response body reading, structural fingerprinting, and
+embedded-state extraction.
 
 ## Why this package exists
 
@@ -133,6 +134,36 @@ structuralSimilarity(before, after); // 0-1
 A signature is the page's tag vocabulary plus its element-count-by-depth
 histogram — a few dozen keys, small enough to store next to a change-tracking
 baseline instead of keeping the whole DOM.
+
+### Reading a page's embedded state
+
+`extractEmbeddedState` returns the JSON a page already ships in its own HTML —
+`__NEXT_DATA__`, RSC flight chunks (`self.__next_f`), `__NUXT__`,
+`__APOLLO_STATE__`, `__INITIAL_STATE__`, `__PRELOADED_STATE__` and
+`<script type="application/json">` blocks. No LLM is involved, so the values are
+the site's own and cannot be fabricated.
+
+```js
+import { extractEmbeddedState, selectJsonPath } from 'crawlforge-extractors';
+
+const { data, found, warnings } = extractEmbeddedState(rawHtml);
+// found -> [{ name: 'next_data', variable: '__NEXT_DATA__', bytes: 439333 }]
+
+selectJsonPath(data, 'next_data.props.pageProps.events.0.name');
+```
+
+Pass the **raw** HTML. Every source lives in a `<script>` tag, so a document
+whose scripts have been stripped has nothing left to read.
+
+Payloads are never truncated — a half-serialized object is worse than a big
+one. `selectJsonPath` is how a caller asks for less: dotted keys and array
+indexes only, no wildcards, filters or recursive descent. A path that does not
+resolve throws naming the keys that *were* available at the point it stopped,
+so a typo comes back fixable rather than empty.
+
+A source that is present but is not JSON — Nuxt 2's IIFE wrapper, Nuxt 3's
+unquoted-key object literal — is reported in `warnings` unparsed. Nothing here
+calls `eval`.
 
 ## Templates
 
