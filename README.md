@@ -40,6 +40,8 @@ const template = registry.get('shopify-product');
 const url = 'https://shop.example.com/products/some-handle';
 const fetchUrl = template.resolveUrl ? template.resolveUrl(url) : url;
 
+// Apply your SSRF policy to fetchUrl (the RETURNED url) and to any redirect the
+// fetch follows — not just to `url`. resolveUrl/listUrl may rewrite the target.
 const body = await (await fetch(fetchUrl)).text();
 const result = await registry.run('shopify-product', body, url, fetchUrl);
 ```
