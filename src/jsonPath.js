@@ -66,7 +66,7 @@ export function selectJsonPath(root, path) {
   for (const segment of segments) {
     const container = current !== null && typeof current === 'object';
     const key = Array.isArray(current) ? Number(segment) : segment;
-    if (!container || !(key in current)) {
+    if (!container || !Object.hasOwn(current, key)) {
       const at = walked.length === 0 ? 'the result' : `"${walked.join('.')}"`;
       throw new Error(
         `Path "${path}" not found: ${at} has no "${segment}" (${describeOptions(current)})`

@@ -14,7 +14,9 @@
  *
  * Templates do NOT make network calls. The caller fetches the page and passes
  * the body in; that keeps SSRF policy, timeouts and billing with the surface
- * that owns them.
+ * that owns them. resolveUrl/listUrl rewrite or build the target, so the caller
+ * must apply its SSRF policy to the URL they RETURN (and to every redirect the
+ * fetch follows), not just to the URL the caller started with.
  *
  * Two optional hooks let a template read a machine-readable endpoint instead of
  * scraping the rendered page, without taking the fetch into its own hands:

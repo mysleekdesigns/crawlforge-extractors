@@ -70,9 +70,18 @@ export async function readBody(response, options = {}) {
   }
 
   // Only the byte-count guard needs a stream. Responses that are already
-  // buffered (and test doubles) are read as-is so callers still get their text.
+  // buffered (and test doubles) have no reader to meter, but a server can omit
+  // or lie about Content-Length, so enforce the cap on the read result too.
   if (!response.body || typeof response.body.getReader !== 'function') {
-    return response.text();
+    const text = await response.text();
+    const size = Buffer.byteLength(text, 'utf8');
+    if (size > maxBytes) {
+      throw new BodyTooLargeError(
+        `Response body too large: ${size} bytes exceeds limit of ${maxBytes} bytes`,
+        { limit: maxBytes, size }
+      );
+    }
+    return text;
   }
 
   const reader = response.body.getReader();

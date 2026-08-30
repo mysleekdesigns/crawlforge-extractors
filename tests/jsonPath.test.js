@@ -50,6 +50,13 @@ describe('selectJsonPath', () => {
     assert.equal(selectJsonPath({ a: { b: 0 } }, 'a.b'), 0);
   });
 
+  test('an inherited prototype key is not found (own properties only)', () => {
+    // toString/constructor live on Object.prototype; a path must not resolve to
+    // them through the prototype chain.
+    assert.throws(() => selectJsonPath({ a: 1 }, 'toString'), /not found/);
+    assert.throws(() => selectJsonPath({ a: 1 }, 'constructor'), /not found/);
+  });
+
   test('a missing key names where it stopped and what was available', () => {
     assert.throws(
       () => selectJsonPath(root, 'next_data.props.pagePropz'),

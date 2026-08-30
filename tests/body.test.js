@@ -137,6 +137,16 @@ describe('readBody size cap', () => {
     await assert.rejects(() => readBody(response, { maxBytes: 100 }), BodyTooLargeError);
   });
 
+  test('enforces the cap on a buffered (non-stream) body too', async () => {
+    // No getReader and no Content-Length — the guard must run on the read
+    // result rather than trusting the missing header.
+    const buffered = { headers: new Headers(), text: async () => 'x'.repeat(200) };
+    await assert.rejects(
+      () => readBody(buffered, { maxBytes: 100 }),
+      (error) => error instanceof BodyTooLargeError && error.size === 200 && error.limit === 100
+    );
+  });
+
   test('accepts a body exactly at the cap', async () => {
     const response = streaming([utf8('x'.repeat(100))]);
     assert.equal((await readBody(response, { maxBytes: 100 })).length, 100);
