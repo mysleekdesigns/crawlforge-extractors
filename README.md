@@ -197,6 +197,13 @@ large board past 4 MB. `lever-postings` declares `crawlDelaySeconds: 1`,
 which `api.lever.co/robots.txt` asks for and the calling surface's host rate
 limiter is expected to honour.
 
+`stackoverflow-question` reads the Stack Exchange API rather than the rendered
+page: stackoverflow.com answers every non-browser fetch (curl, node, and a
+browser User-Agent alike) with a Cloudflare 403, so the old selector extractor
+never saw a document. The API is keyless — 300 requests per day per IP — and
+one request carries the question, its owner and every answer; the template
+returns the accepted answer first, then by score, with bodies as plain text.
+
 `nhtsa-vin` decodes a VIN through the NHTSA vPIC API — the ~154 returned
 fields are curated into a named vehicle shape with the API's empty-string
 "not applicable" normalised to `null`, the full set kept under `raw`, and the

@@ -115,6 +115,23 @@ function normalizeTags(tags) {
 }
 
 /** body_html is a rendered HTML fragment; callers want the copy, not the markup. */
+/** Stack Exchange timestamps are epoch seconds. */
+function epochToIso(seconds) {
+  return typeof seconds === 'number' && Number.isFinite(seconds)
+    ? new Date(seconds * 1000).toISOString()
+    : null;
+}
+
+/**
+ * Stack Exchange API filter created once via /2.3/filters/create with
+ * include=question.body;question.answers;answer.body;question.accepted_answer_id
+ * on base=default (filters are permanent and shareable per the API docs).
+ * The default base keeps the response wrapper (.items, .quota_remaining) and
+ * the standard question/answer fields; the includes add the bodies and the
+ * nested answers so one request carries the whole thread.
+ */
+const STACKEXCHANGE_FILTER = '!20aKG._8Oscv*6djs8Pgm';
+
 function htmlToText(html) {
   if (!html) return null;
   const text = load(`<div>${html}</div>`)('div').text().replace(/\s+/g, ' ').trim();
@@ -668,7 +685,7 @@ export const TEMPLATES = [
     id: 'hacker-news-front-page',
     name: 'Hacker News Front Page',
     description: 'Scrape the Hacker News front page for a list of stories with title, URL, score, and comment count.',
-    targetPattern: /news\.ycombinator\.com(\/news)?$/i,
+    targetPattern: /news\.ycombinator\.com(\/news)?\/?$/i,
     extract($) {
       const stories = [];
       $('tr.athing').each((_, el) => {
@@ -716,29 +733,74 @@ export const TEMPLATES = [
   {
     id: 'stackoverflow-question',
     name: 'Stack Overflow Question',
-    description: 'Scrape a Stack Overflow question for title, body, votes, tags, answers, and accepted answer.',
-    targetPattern: /stackoverflow\.com\/questions\//i,
-    extract($) {
-      const answers = [];
-      $('.answer').each((_, el) => {
-        const $a = $(el);
-        answers.push({
-          votes: $a.find('[itemprop="upvoteCount"]').attr('content') || $a.find('.js-vote-count').text().trim(),
-          accepted: $a.hasClass('accepted-answer'),
-          body: $a.find('.s-prose').first().text().trim().slice(0, 500)
-        });
-      });
+    description:
+      'Read a Stack Overflow question from the Stack Exchange API rather than the rendered page: ' +
+      'title, body, score, views, tags, owner, and the answers with their scores and which one ' +
+      'was accepted. stackoverflow.com answers every non-browser fetch with a Cloudflare 403, so ' +
+      'the page itself yields nothing; the API is keyless (300 requests per day per IP).',
+    targetPattern: /stackoverflow\.com\/questions\/\d+/i,
+
+    /** Point the fetch at the API document for the same question. */
+    resolveUrl(url) {
+      const match = new URL(url).pathname.match(/\/questions\/(\d+)/);
+      if (!match) return url;
+      return `https://api.stackexchange.com/2.3/questions/${match[1]}` +
+        `?site=stackoverflow&filter=${STACKEXCHANGE_FILTER}`;
+    },
+
+    extractRaw(body, url) {
+      let doc;
+      try {
+        doc = JSON.parse(body);
+      } catch {
+        throw new Error(
+          `Not a Stack Exchange API document: ${url} did not return JSON. ` +
+          'This template reads the Stack Exchange API.'
+        );
+      }
+
+      // The API reports its own failures (bad filter, throttled, no such site)
+      // as a 400 with error_* fields; a missing question is an empty items list.
+      if (doc && doc.error_id) {
+        throw new Error(
+          `Stack Exchange API error ${doc.error_id} (${doc.error_name || 'unknown'}): ${doc.error_message || 'no message'}.`
+        );
+      }
+      const question = Array.isArray(doc?.items) ? doc.items[0] : null;
+      if (!question) {
+        throw new Error(`No Stack Overflow question at ${url}: the API returned no items.`);
+      }
+
+      // Accepted answer first, then by score — the order the site shows.
+      const answers = (question.answers || [])
+        .slice()
+        .sort((a, b) => (Number(Boolean(b.is_accepted)) - Number(Boolean(a.is_accepted))) || ((b.score ?? 0) - (a.score ?? 0)));
 
       return {
-        title: text($, '#question-header h1'),
-        body: text($, '.question .s-prose'),
-        votes: text($, '.question .js-vote-count') || attr($, '.question [itemprop="upvoteCount"]', 'content'),
-        views: text($, '.js-view-count') || attr($, 'meta[name="twitter:data1"]', 'content'),
-        tags: list($, '.post-tag'),
-        author: text($, '.question .user-details a'),
-        asked: attr($, '.question time', 'datetime'),
-        answers: answers.slice(0, 5),
-        answered: $('div.accepted-answer').length > 0
+        question_id: question.question_id ?? null,
+        // Titles and display names come HTML-encoded (&quot;, &#39;).
+        title: htmlToText(question.title),
+        body: htmlToText(question.body),
+        votes: question.score ?? null,
+        views: question.view_count ?? null,
+        tags: question.tags || [],
+        author: htmlToText(question.owner?.display_name),
+        author_reputation: question.owner?.reputation ?? null,
+        asked: epochToIso(question.creation_date),
+        last_activity: epochToIso(question.last_activity_date),
+        link: question.link || null,
+        answered: Boolean(question.is_answered),
+        accepted_answer_id: question.accepted_answer_id ?? null,
+        answer_count: question.answer_count ?? answers.length,
+        answers: answers.slice(0, 5).map(a => ({
+          answer_id: a.answer_id ?? null,
+          votes: a.score ?? null,
+          accepted: Boolean(a.is_accepted),
+          author: htmlToText(a.owner?.display_name),
+          posted: epochToIso(a.creation_date),
+          body: (htmlToText(a.body) || '').slice(0, 500) || null
+        })),
+        quota_remaining: doc.quota_remaining ?? null
       };
     }
   },
