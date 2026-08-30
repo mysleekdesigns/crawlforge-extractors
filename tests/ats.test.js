@@ -644,6 +644,61 @@ describe('teamtailor-jobs', () => {
     assert.equal(template.resolveUrl(feed), feed);
   });
 
+  test('the careers-site ROOT resolves to the jobs feed, not "/.rss"', () => {
+    // Round-10 regression. Stripping the trailing slash off "/" left "", so a
+    // bare root built "<host>/.rss", which every tenant answers with 403 — and
+    // the root is exactly the URL a user pastes.
+    assert.equal(
+      template.resolveUrl('https://polestar.teamtailor.com/'),
+      'https://polestar.teamtailor.com/jobs.rss'
+    );
+    assert.equal(
+      template.resolveUrl('https://polestar.teamtailor.com'),
+      'https://polestar.teamtailor.com/jobs.rss'
+    );
+  });
+
+  test('targetPattern accepts the root and the jobs page, but not deeper paths', () => {
+    for (const url of [
+      'https://polestar.teamtailor.com/',
+      'https://polestar.teamtailor.com',
+      'https://polestar.teamtailor.com/jobs',
+      'https://polestar.teamtailor.com/jobs/',
+      'https://polestar.teamtailor.com/jobs.rss',
+      'https://polestar.teamtailor.com/jobs.rss?offset=100'
+    ]) {
+      assert.equal(template.targetPattern.test(url), true, `should match ${url}`);
+    }
+    // robots disallows /jobs/internal/ — it must not auto-route here.
+    assert.equal(
+      template.targetPattern.test('https://polestar.teamtailor.com/jobs/internal/'),
+      false
+    );
+  });
+
+  test('a valid feed with no items is an empty board, not an error', () => {
+    // normative.teamtailor.com serves exactly this: well-formed RSS, a channel
+    // title, zero <item>. Every sibling connector reports an empty board as
+    // count: 0, and throwing here turned "nobody is hiring" into "tool broken".
+    const empty = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<rss version="2.0"><channel><title>Normative</title>',
+      '<link>https://normative.teamtailor.com/jobs</link></channel></rss>'
+    ].join('');
+
+    const result = template.extractList(empty, 'https://normative.teamtailor.com/jobs.rss');
+    assert.equal(result.count, 0);
+    assert.deepEqual(result.items, []);
+    assert.equal(result.company, 'Normative');
+  });
+
+  test('a response that is not an RSS feed is still an error', () => {
+    assert.throws(
+      () => template.extractList('<html><body>Not a feed</body></html>', 'https://x.teamtailor.com/jobs.rss'),
+      /not an RSS feed/
+    );
+  });
+
   test('reads real jobs off the captured feed', () => {
     const { items, count, company } = BOARDS['teamtailor-jobs']();
     assert.equal(count, 3);
@@ -705,11 +760,14 @@ describe('teamtailor-jobs', () => {
         'https://career.teamtailor.com/jobs'),
       /No Teamtailor job feed at .*: the response is not an RSS feed\./
     );
-    assert.throws(
-      () => template.extractList('<?xml version="1.0"?><rss version="2.0"><channel>' +
-        '<title>Teamtailor</title></channel></rss>',
-        'https://career.teamtailor.com/jobs.rss'),
-      /No Teamtailor job feed at .*: the feed has no items\./
+    // A well-formed feed carrying no <item> used to throw here too. It no
+    // longer does: that is a company with nothing open, which every sibling
+    // connector reports as count: 0. See the empty-board test above.
+    const emptyFeed = '<?xml version="1.0"?><rss version="2.0"><channel>' +
+      '<title>Teamtailor</title></channel></rss>';
+    assert.equal(
+      template.extractList(emptyFeed, 'https://career.teamtailor.com/jobs.rss').count,
+      0
     );
   });
 });

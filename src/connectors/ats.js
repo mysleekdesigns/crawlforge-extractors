@@ -652,7 +652,10 @@ export const ATS_TEMPLATES = [
       'Read a company\'s published Teamtailor jobs from the careers site\'s documented RSS feed ' +
       'rather than the rendered page: title, department, locations, remote status and plain-text ' +
       'description for every open role. The feed returns the first 100 jobs unless per_page says otherwise.',
-    targetPattern: /teamtailor\.com\/jobs(\.rss)?(\?|$)/i,
+    // The careers-site root counts as a target: it is what a user pastes, and
+    // resolveUrl turns it into <host>/jobs.rss. A deeper path (/jobs/internal/,
+    // which robots disallows anyway) still does not match.
+    targetPattern: /teamtailor\.com\/?(?:jobs(\.rss)?\/?)?(\?|#|$)/i,
 
     /** `company` is the subdomain in https://<company>.teamtailor.com. */
     listUrl(params = {}) {
@@ -671,7 +674,13 @@ export const ATS_TEMPLATES = [
     resolveUrl(url) {
       const parsed = new URL(url);
       if (parsed.pathname.endsWith('.rss')) return url;
-      parsed.pathname = `${parsed.pathname.replace(/\/$/, '')}.rss`;
+      // The feed is the JOBS page with ".rss" appended, so a careers-site root
+      // has to gain the jobs path first. Stripping the trailing slash off "/"
+      // leaves "", which built "<host>/.rss" — a URL Teamtailor answers with
+      // 403 on every tenant tested. The bare root is what a user actually
+      // pastes, so it has to resolve to the documented "<host>/jobs.rss".
+      const path = parsed.pathname.replace(/\/+$/, '');
+      parsed.pathname = `${path || '/jobs'}.rss`;
       return parsed.toString();
     },
 
@@ -681,9 +690,14 @@ export const ATS_TEMPLATES = [
       const $ = load(body, { xmlMode: true });
       const items = $('channel > item');
 
-      if (!$('rss').length || !items.length) {
+      // Only a response that is not a feed is an error. A valid feed with no
+      // <item> is a company with nothing open right now — normative.teamtailor.com
+      // serves exactly that — and every sibling ATS connector reports an empty
+      // board as count: 0 rather than throwing. Conflating the two turned
+      // "nobody is hiring" into "the tool is broken".
+      if (!$('rss').length) {
         throw new Error(
-          `No Teamtailor job feed at ${url}: ${$('rss').length ? 'the feed has no items' : 'the response is not an RSS feed'}. ` +
+          `No Teamtailor job feed at ${url}: the response is not an RSS feed. ` +
           'The feed is the careers site jobs page with ".rss" appended, e.g. ' +
           'https://<company>.teamtailor.com/jobs.rss.'
         );
