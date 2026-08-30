@@ -1,0 +1,27 @@
+{
+  "data": [
+    {
+      "id": "1w2lsvx",
+      "name": "t3_1w2lsvx",
+      "title": "I built Volten: A zero-dependency, TypeScript-native HTTP framework for Node.js",
+      "author": "voltenjs",
+      "subreddit": "node",
+      "subreddit_name_prefixed": "r/node",
+      "created_utc": 1788106615,
+      "score": 1,
+      "ups": 1,
+      "upvote_ratio": 1,
+      "num_comments": 0,
+      "link_flair_text": null,
+      "over_18": false,
+      "is_self": true,
+      "selftext": "[removed]",
+      "url": "https://www.reddit.com/r/node/comments/1w2lsvx/i_built_volten_a_zerodependency_typescriptnative/",
+      "permalink": "/r/node/comments/1w2lsvx/i_built_volten_a_zerodependency_typescriptnative/",
+      "removed_by_category": "moderator",
+      "locked": false,
+      "stickied": false,
+      "domain": "self.node"
+    }
+  ]
+}

@@ -168,9 +168,9 @@ calls `eval`.
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·
-`amazon-product` · `linkedin-profile` · `github-repo` · `youtube-video` ·
-`tweet` · `reddit-thread` · `hacker-news-front-page` · `producthunt-launch` ·
-`stackoverflow-question` · `npm-package`
+`amazon-product` · `github-repo` · `youtube-video` · `reddit-thread` ·
+`hacker-news-front-page` · `producthunt-launch` · `stackoverflow-question` ·
+`npm-package`
 
 **Job boards** (`src/connectors/ats.js`). `greenhouse-jobs` ·
 `lever-postings` · `ashby-jobs` · `workable-jobs` · `recruitee-offers` ·
@@ -212,8 +212,22 @@ swallowed, because a partial decode is a real answer. `npi-provider` reads the
 CMS NPI Registry — a public professional registry — and passes its records
 through as published. Neither needs a key.
 
-`reddit-thread` is registered here but reddit.com blocks plain fetchers; the
-REST API steers those callers to its `reddit_search` tool instead.
+`reddit-thread` reads the Arctic Shift community archive
+(`arctic-shift.photon-reddit.com/api/posts/ids`) rather than reddit.com, which
+403s every non-browser client and disallows everything in robots.txt. One
+keyless request returns the post record — title, subreddit, author, score,
+upvote ratio, comment count, body, flair, removal state. The comment tree is
+a second endpoint and belongs to the calling surface's `reddit_search` tool,
+which the returned `id` feeds directly.
+
+`linkedin-profile` and `tweet` are **retired** (2026-08-30) and live in
+`RETIRED_TEMPLATES` with the reason: LinkedIn's robots.txt disallows every
+path for all agents but its own crawler and profiles sit behind an auth wall;
+X's robots.txt disallows every path for generic agents and its keyless embed
+endpoints (`cdn.syndication.twimg.com`, `publish.x.com/oembed`) are disallowed
+by their own robots.txt. `retiredTemplate(idOrUrl)` answers for either an id or
+a URL they handled, so a surface can return the reason instead of "unknown
+template".
 
 `smartrecruiters-postings` is deliberately **not** shipped: SmartRecruiters
 documents the endpoint publicly, but `api.smartrecruiters.com/robots.txt`

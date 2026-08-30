@@ -1,6 +1,6 @@
 {
   "name": "crawlforge-extractors",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Extraction logic shared by the CrawlForge MCP server and REST API — scrape templates, charset-correct capped body reading, structural fingerprinting, and embedded-state extraction. One implementation, so the two surfaces cannot drift apart.",
   "type": "module",
   "main": "./index.js",

@@ -14,7 +14,7 @@
  * caller has already issued rather than a URL.
  */
 
-export { TemplateRegistry, TEMPLATES } from './src/templates.js';
+export { TemplateRegistry, TEMPLATES, RETIRED_TEMPLATES, retiredTemplate } from './src/templates.js';
 export { TemplateRegistry as default } from './src/templates.js';
 
 export {

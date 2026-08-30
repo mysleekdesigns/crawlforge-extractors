@@ -132,6 +132,19 @@ function epochToIso(seconds) {
  */
 const STACKEXCHANGE_FILTER = '!20aKG._8Oscv*6djs8Pgm';
 
+/**
+ * The community Reddit archive reddit-thread reads. reddit.com answers every
+ * non-browser client with a 403 (IP/TLS-reputation based, stealth browsers
+ * included) and its robots.txt disallows everything; the archive's robots.txt
+ * allows all agents and its /api/posts/ids answers keyless.
+ */
+const ARCTIC_SHIFT_BASE = 'https://arctic-shift.photon-reddit.com';
+
+/** The base36 post id in a reddit.com post URL, or null when there is none. */
+function redditPostId(url) {
+  return /\/comments\/([a-z0-9]+)/i.exec(url)?.[1] ?? null;
+}
+
 function htmlToText(html) {
   if (!html) return null;
   const text = load(`<div>${html}</div>`)('div').text().replace(/\s+/g, ' ').trim();
@@ -562,24 +575,6 @@ export const TEMPLATES = [
   },
 
   {
-    id: 'linkedin-profile',
-    name: 'LinkedIn Profile',
-    description: 'Scrape a LinkedIn public profile for name, headline, location, and about section.',
-    targetPattern: /linkedin\.com\/in\//i,
-    extract($) {
-      return {
-        name: text($, 'h1') || text($, '.top-card-layout__title'),
-        headline: text($, '.top-card-layout__headline') || text($, 'h2'),
-        location: text($, '.top-card-layout__first-subline') || text($, '.profile-info-subheader'),
-        about: text($, '.core-section-container__content p') || text($, '.summary'),
-        connections: text($, '.top-card__connections'),
-        current_company: text($, '.top-card-layout__card-inner-full-width .top-card-link'),
-        note: 'LinkedIn requires authentication for full profiles. This template works on public profile pages only.'
-      };
-    }
-  },
-
-  {
     id: 'github-repo',
     name: 'GitHub Repository',
     description: 'Scrape a GitHub repository page for stars, forks, description, language, topics, and README summary.',
@@ -647,36 +642,57 @@ export const TEMPLATES = [
   },
 
   {
-    id: 'tweet',
-    name: 'Tweet / X Post',
-    description: 'Scrape a tweet/X post for text, author, timestamp, likes, and retweets from the Open Graph / structured data.',
-    targetPattern: /(twitter|x)\.com\/[^/]+\/status\//i,
-    extract($) {
-      return {
-        text: attr($, 'meta[property="og:description"]', 'content'),
-        author: attr($, 'meta[property="og:title"]', 'content'),
-        url: attr($, 'meta[property="og:url"]', 'content') || attr($, 'link[rel="canonical"]', 'href'),
-        image: attr($, 'meta[property="og:image"]', 'content'),
-        note: 'X.com requires JavaScript rendering for full tweet data. Structured metadata is returned from static HTML.'
-      };
-    }
-  },
-
-  {
     id: 'reddit-thread',
     name: 'Reddit Thread',
-    description: 'Scrape a Reddit thread for title, subreddit, score, comment count, author, and top-level comments.',
-    targetPattern: /reddit\.com\/r\/[^/]+\/comments\//i,
-    extract($) {
+    description: 'Read a Reddit post — title, subreddit, author, score, upvote ratio, comment count, body and flair — from the Arctic Shift archive, since reddit.com blocks plain fetchers. For the comment tree, pass the returned id to the reddit_search tool in thread mode.',
+    targetPattern: /reddit\.com\/(?:r\/[^/]+\/)?comments\/[a-z0-9]+/i,
+
+    resolveUrl(url) {
+      const id = redditPostId(url);
+      if (!id) return url;
+      return `${ARCTIC_SHIFT_BASE}/api/posts/ids?ids=${id}`;
+    },
+
+    extractRaw(body, url) {
+      let doc;
+      try {
+        doc = JSON.parse(body);
+      } catch {
+        throw new Error(
+          `Not an Arctic Shift document: ${url} did not return JSON. ` +
+          'This template reads the Arctic Shift archive, not reddit.com.'
+        );
+      }
+      // The archive reports a bad request as {data:null, error:"..."}; a post
+      // it has never captured is an empty data list.
+      if (doc && doc.error) {
+        throw new Error(`Arctic Shift error: ${doc.error}`);
+      }
+      const post = Array.isArray(doc?.data) ? doc.data[0] : null;
+      if (!post) {
+        throw new Error(`No Reddit post at ${url}: the Arctic Shift archive has no record of it.`);
+      }
+
       return {
-        title: attr($, 'meta[property="og:title"]', 'content') || text($, 'h1'),
-        subreddit: text($, 'a[href*="/r/"][class*="subreddit"]') || (($('title').text().match(/r\/([^•]+)/) || [])[1] || '').trim(),
-        score: text($, '[data-score]') || attr($, '[itemprop="upvoteCount"]', 'content'),
-        author: text($, 'a[href*="/user/"]'),
-        posted: attr($, 'time[datetime]', 'datetime'),
-        body: text($, 'div[data-click-id="text"] p') || attr($, 'meta[property="og:description"]', 'content'),
-        url: attr($, 'meta[property="og:url"]', 'content'),
-        flair: text($, '[class*="flair"]')
+        id: post.id ?? null,
+        title: post.title ?? null,
+        subreddit: post.subreddit ?? null,
+        author: post.author ?? null,
+        score: typeof post.score === 'number' ? post.score : null,
+        upvote_ratio: typeof post.upvote_ratio === 'number' ? post.upvote_ratio : null,
+        num_comments: typeof post.num_comments === 'number' ? post.num_comments : null,
+        posted: epochToIso(post.created_utc),
+        // "[removed]" and "[deleted]" come back as written: that is what the
+        // archive holds, and a caller can tell it from an empty post.
+        body: post.selftext || null,
+        // A link post carries its external URL here; a self post carries its
+        // own permalink, which `url` already reports.
+        link_url: post.is_self ? null : (post.url || null),
+        url: post.permalink ? `https://www.reddit.com${post.permalink}` : null,
+        flair: post.link_flair_text ?? null,
+        over_18: Boolean(post.over_18),
+        removed: post.removed_by_category ?? post._meta?.removal_type ?? null,
+        note: 'Read from the Arctic Shift archive, not reddit.com. Scores and comment counts of content less than ~36h old may read 0/1. For the comment tree call reddit_search with mode:"thread" and this id.'
       };
     }
   },
@@ -876,6 +892,37 @@ export const TEMPLATES = [
   ...ATS_TEMPLATES,
   ...GOV_TEMPLATES
 ];
+
+/**
+ * Templates withdrawn because there is no compliant way to reach the data.
+ * They are kept here by id, so a caller naming one gets the reason rather
+ * than "unknown template", and by pattern, so `auto` can say the same for a
+ * URL they would have matched. Verified against each site's robots.txt on
+ * 2026-08-30.
+ */
+export const RETIRED_TEMPLATES = {
+  'linkedin-profile': {
+    targetPattern: /linkedin\.com\/in\//i,
+    reason: 'linkedin.com/robots.txt disallows every path for all agents except LinkedIn\'s own crawler, and profile pages sit behind an authentication wall, so there is no compliant way to read a profile.'
+  },
+  tweet: {
+    targetPattern: /(twitter|x)\.com\/[^/]+\/status\//i,
+    reason: 'x.com/robots.txt disallows every path for generic agents, and the keyless embed endpoints (cdn.syndication.twimg.com, publish.x.com/oembed) are disallowed by their own robots.txt, so a tweet cannot be read without X API credentials.'
+  }
+};
+
+/**
+ * The retired template a caller is reaching for — by id, or by a URL one of
+ * them handled — as { id, reason }, or null.
+ */
+export function retiredTemplate(idOrUrl) {
+  if (typeof idOrUrl !== 'string') return null;
+  if (RETIRED_TEMPLATES[idOrUrl]) return { id: idOrUrl, reason: RETIRED_TEMPLATES[idOrUrl].reason };
+  for (const [id, entry] of Object.entries(RETIRED_TEMPLATES)) {
+    if (entry.targetPattern.test(idOrUrl)) return { id, reason: entry.reason };
+  }
+  return null;
+}
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 

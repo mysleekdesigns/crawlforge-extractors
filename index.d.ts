@@ -100,6 +100,18 @@ export interface TemplateListResult {
 
 export declare const TEMPLATES: ScrapeTemplate[];
 
+/**
+ * Templates withdrawn because there is no compliant way to reach the data,
+ * by id: the URL shape each one handled, and why it is gone.
+ */
+export declare const RETIRED_TEMPLATES: Record<string, { targetPattern: RegExp; reason: string }>;
+
+/**
+ * The retired template a caller is reaching for — by id, or by a URL one of
+ * them handled — or null.
+ */
+export declare function retiredTemplate(idOrUrl: string): { id: string; reason: string } | null;
+
 export declare class TemplateRegistry {
   /** @param templates injectable, so a test can register a fixture template. */
   constructor(templates?: ScrapeTemplate[]);
