@@ -45,6 +45,7 @@ import { load } from 'cheerio';
 // have made one file the whole package.
 import { ATS_TEMPLATES } from './connectors/ats.js';
 import { GOV_TEMPLATES } from './connectors/gov.js';
+import { safeHref } from './urls.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -608,7 +609,7 @@ export const TEMPLATES = [
         last_updated: attr($, 'relative-time', 'datetime'),
         // When the sidebar payload is present it is authoritative: an empty
         // website means "no homepage", not "go scrape some external link".
-        homepage: about ? about.website || null : attr($, 'a[href][rel="noopener noreferrer"]', 'href'),
+        homepage: safeHref(about ? about.website : attr($, 'a[href][rel="noopener noreferrer"]', 'href')),
         open_issues: githubCounter($, '#issues-repo-tab-count') || text($, '.Counter[aria-label*="issue"]')
       };
     }
@@ -623,7 +624,7 @@ export const TEMPLATES = [
       return {
         title: attr($, 'meta[name="title"]', 'content') || attr($, 'meta[property="og:title"]', 'content'),
         channel: attr($, 'link[itemprop="name"]', 'content') || text($, '#channel-name'),
-        channel_url: attr($, 'span[itemprop="author"] link[itemprop="url"]', 'href'),
+        channel_url: safeHref(attr($, 'span[itemprop="author"] link[itemprop="url"]', 'href')),
         views: youtubeInteractionCount($, 'WatchAction'),
         likes: youtubeInteractionCount($, 'LikeAction'),
         published: attr($, 'meta[itemprop="uploadDate"]', 'content') || attr($, 'meta[itemprop="datePublished"]', 'content'),
@@ -687,7 +688,7 @@ export const TEMPLATES = [
         body: post.selftext || null,
         // A link post carries its external URL here; a self post carries its
         // own permalink, which `url` already reports.
-        link_url: post.is_self ? null : (post.url || null),
+        link_url: post.is_self ? null : safeHref(post.url),
         url: post.permalink ? `https://www.reddit.com${post.permalink}` : null,
         flair: post.link_flair_text ?? null,
         over_18: Boolean(post.over_18),
@@ -713,7 +714,7 @@ export const TEMPLATES = [
         stories.push({
           id: $row.attr('id'),
           title: $titleLink.text().trim(),
-          url: $titleLink.attr('href'),
+          url: safeHref($titleLink.attr('href')),
           site: $row.find('.sitebit a').text().trim() || null,
           score: $score.text().replace(' points', '').trim() || null,
           author: $subtext.find('.hnuser').text().trim() || null,
@@ -738,10 +739,10 @@ export const TEMPLATES = [
         name: attr($, 'meta[property="og:title"]', 'content'),
         tagline: attr($, 'meta[property="og:description"]', 'content'),
         image: attr($, 'meta[property="og:image"]', 'content'),
-        url: attr($, 'meta[property="og:url"]', 'content'),
+        url: safeHref(attr($, 'meta[property="og:url"]', 'content')),
         votes: text($, '[data-test="vote-button"] span') || text($, 'button[data-vote-button]'),
         topics: list($, 'a[href*="/topics/"]'),
-        website: attr($, 'a[data-test="product-link"]', 'href') || attr($, 'a[href][rel="noopener"][target="_blank"]', 'href')
+        website: safeHref(attr($, 'a[data-test="product-link"]', 'href') || attr($, 'a[href][rel="noopener"][target="_blank"]', 'href'))
       };
     }
   },
@@ -869,8 +870,8 @@ export const TEMPLATES = [
         version: latest,
         description: release.description || doc.description || null,
         license: npmLicense(release.license ?? doc.license),
-        homepage: release.homepage || doc.homepage || null,
-        repository: npmRepositoryUrl(release.repository || doc.repository),
+        homepage: safeHref(release.homepage || doc.homepage),
+        repository: safeHref(npmRepositoryUrl(release.repository || doc.repository)),
         bugs: npmBugsUrl(release.bugs || doc.bugs),
         keywords: release.keywords || doc.keywords || [],
         maintainers: (doc.maintainers || [])
