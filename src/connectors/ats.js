@@ -20,6 +20,7 @@
  */
 
 import { load } from 'cheerio';
+import { safeHref } from '../urls.js';
 
 // ── The common job shape ─────────────────────────────────────────────────────
 
@@ -269,7 +270,7 @@ export const ATS_TEMPLATES = [
       const items = payload.jobs.map(j => job({
         id: id(j.id),
         title: str(j.title),
-        url: str(j.absolute_url),
+        url: safeHref(str(j.absolute_url)),
         location: str(j.location?.name),
         // departments and offices ship only with content=true, so a summary
         // record reports null here rather than a department guessed from the
@@ -359,7 +360,7 @@ export const ATS_TEMPLATES = [
           id: id(p.id),
           // Lever calls the job title "text".
           title: str(p.text),
-          url: str(p.hostedUrl),
+          url: safeHref(str(p.hostedUrl)),
           location: str(categories.location),
           department: str(categories.department),
           team: str(categories.team),
@@ -377,7 +378,7 @@ export const ATS_TEMPLATES = [
             // cities lists all three here.
             all_locations: (categories.allLocations || []).map(str).filter(Boolean),
             salary_range: p.salaryRange || null,
-            apply_url: str(p.applyUrl)
+            apply_url: safeHref(str(p.applyUrl))
           }
         });
       });
@@ -432,7 +433,7 @@ export const ATS_TEMPLATES = [
       const items = payload.jobs.map(j => job({
         id: id(j.id),
         title: str(j.title),
-        url: str(j.jobUrl),
+        url: safeHref(str(j.jobUrl)),
         location: str(j.location),
         department: str(j.department),
         team: str(j.team),
@@ -452,7 +453,7 @@ export const ATS_TEMPLATES = [
           // Names only. The full entries carry a postal address per country,
           // which is an office directory, not part of a job listing.
           secondary_locations: (j.secondaryLocations || []).map(l => str(l.location)).filter(Boolean),
-          apply_url: str(j.applyUrl)
+          apply_url: safeHref(str(j.applyUrl))
         }
       }));
 
@@ -523,7 +524,7 @@ export const ATS_TEMPLATES = [
         // separate numeric id in this payload.
         id: id(j.shortcode),
         title: str(j.title),
-        url: str(j.url),
+        url: safeHref(str(j.url)),
         location: joinLocation(j.city, j.state, j.country),
         department: str(j.department),
         // Workable has no team level.
@@ -540,7 +541,7 @@ export const ATS_TEMPLATES = [
           shortcode: str(j.shortcode),
           code: str(j.code),
           function: str(j.function),
-          apply_url: str(j.application_url)
+          apply_url: safeHref(str(j.application_url))
         }
       }));
 
@@ -602,7 +603,7 @@ export const ATS_TEMPLATES = [
       const items = payload.offers.map(o => job({
         id: id(o.id),
         title: str(o.title),
-        url: str(o.careers_url),
+        url: safeHref(str(o.careers_url)),
         location: str(o.location),
         department: str(o.department),
         team: null,
@@ -623,7 +624,7 @@ export const ATS_TEMPLATES = [
           slug: str(o.slug),
           salary: o.salary || null,
           tags: (o.tags || []).map(str).filter(Boolean),
-          apply_url: str(o.careers_apply_url)
+          apply_url: safeHref(str(o.careers_apply_url))
         }
       }));
 
@@ -715,7 +716,7 @@ export const ATS_TEMPLATES = [
           // is the one their support pages call the "Job ID".
           id: id(field('guid')),
           title: field('title'),
-          url: field('link'),
+          url: safeHref(field('link')),
           location: locations.length ? locations.join(', ') : null,
           department: field('tt\\:department'),
           team: null,

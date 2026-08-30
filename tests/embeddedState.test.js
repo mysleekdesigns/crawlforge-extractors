@@ -102,6 +102,38 @@ describe('RSC flight stream (Healthgrades)', () => {
   });
 });
 
+describe('RSC flight stream — many text rows (DoS regression)', () => {
+  // A page controls its own flight stream via self.__next_f.push([...]). A
+  // stream of many small text ("T") rows used to re-slice the whole remaining
+  // stream on every row — O(N^2) — so a ~megabyte of tiny rows could pin a CPU.
+  // Each T row's declared length includes its terminating newline, so the rows
+  // concatenate directly with no separator.
+  const ROW_COUNT = 40000;
+  const blob = 'x\n'; // 2 bytes, newline included in the declared length
+  const stream = Array.from(
+    { length: ROW_COUNT },
+    (_, i) => `${i}:T${(2).toString(16)},${blob}`
+  ).join('');
+  const html = `<!doctype html><html><body><script>self.__next_f.push([1,${JSON.stringify(stream)}])</script></body></html>`;
+
+  const started = Date.now();
+  const { data } = extractEmbeddedState(html);
+  const elapsedMs = Date.now() - started;
+
+  test('every text row is decoded, and the newline stays inside the blob', () => {
+    assert.equal(Object.keys(data.next_f).length, ROW_COUNT);
+    assert.equal(data.next_f['0'], blob);
+    assert.equal(data.next_f[String(ROW_COUNT - 1)], blob);
+  });
+
+  test('parsing stays linear (a re-slice-per-row regression would blow this bound)', () => {
+    // The fixed path handles this input in well under 300ms; the O(N^2) version
+    // takes many seconds. The 3s ceiling is generous enough not to flake on a
+    // loaded machine while still catching a reintroduced full-tail slice.
+    assert.ok(elapsedMs < 3000, `parsed ${ROW_COUNT} text rows in ${elapsedMs}ms`);
+  });
+});
+
 describe('Nuxt (elk.zone)', () => {
   const { data, found, warnings } = extractEmbeddedState(fixture('elk-zone-nuxt.html'));
 

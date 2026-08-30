@@ -147,8 +147,14 @@ function parseFlightRows(stream) {
     const textRow = payload.match(/^T([0-9a-f]+),/i);
     if (textRow) {
       const blobStart = payloadStart + textRow[0].length;
-      const text = Buffer.from(stream.slice(blobStart), 'utf8')
-        .subarray(0, parseInt(textRow[1], 16))
+      const byteLen = parseInt(textRow[1], 16);
+      // Decode only up to byteLen bytes. Slicing the whole remaining stream on
+      // every text row makes this O(N) per row -> O(N^2) for an
+      // attacker-controlled stream of many small text rows. byteLen bytes span
+      // at most byteLen characters, so bounding the slice to that many chars
+      // keeps the work linear and yields the identical decoded blob.
+      const text = Buffer.from(stream.slice(blobStart, blobStart + byteLen), 'utf8')
+        .subarray(0, byteLen)
         .toString('utf8');
       rows[id] = text;
       cursor = blobStart + text.length;
