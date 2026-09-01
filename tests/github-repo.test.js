@@ -101,7 +101,10 @@ describe('github-repo open issues from the tab counter', () => {
   });
 
   test('a "Not available" title is not mistaken for a count', async () => {
-    const html = '<span id="issues-repo-tab-count" title="Not available" class="Counter"></span>';
+    // The name element keeps the record non-empty — a page where every field
+    // extracts null now fails run()'s empty-record guard by design.
+    const html = '<strong itemprop="name"><a>expressjs/express</a></strong>' +
+      '<span id="issues-repo-tab-count" title="Not available" class="Counter"></span>';
     assert.equal((await run(html)).open_issues, null);
   });
 });
@@ -154,7 +157,9 @@ describe('github-repo description is the About text, never the OG boilerplate', 
   });
 
   test('with neither, pure boilerplate strips to null rather than being returned', async () => {
-    assert.equal((await run(OG_BOILERPLATE)).description, null);
+    // As above: the name element keeps the record clear of the empty-record guard.
+    const html = '<strong itemprop="name"><a>expressjs/express</a></strong>' + OG_BOILERPLATE;
+    assert.equal((await run(html)).description, null);
   });
 
   test('with neither, an OG tag with the boilerplate appended keeps the real text', async () => {

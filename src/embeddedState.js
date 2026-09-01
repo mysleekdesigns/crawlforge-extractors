@@ -35,6 +35,14 @@ const HTML_COMMENT_RE = /<!--[\s\S]*?-->/g;
 // self.__next_f.push([1,"<chunk>"]) — Next.js App Router RSC flight chunks.
 const NEXT_F_PUSH_RE = /self\.__next_f\.push\(\s*\[\s*1\s*,\s*/g;
 
+// (window[Symbol.for("ApolloSSRDataTransport")] ??= []).push({...}) — Apollo
+// Client's streaming-SSR rehydration payload. On an App Router page the RSC
+// flight stream can be a near-empty shell while the page's real data — the
+// GraphQL results its UI renders from — rides in these pushes instead
+// (producthunt.com product pages, observed 2026-09-01).
+const APOLLO_TRANSPORT_RE =
+  /Symbol\.for\(\s*["']ApolloSSRDataTransport["']\s*\)\s*\]\s*\?\?=\s*\[\s*\]\s*\)\s*\.push\(\s*/g;
+
 /**
  * Read an HTML attribute out of a raw tag's attribute string.
  * @param {string} attrs
@@ -191,6 +199,35 @@ function readFlightStream(html) {
   return { chunks: parts.length, stream: parts.join('') };
 }
 
+/**
+ * Collect every ApolloSSRDataTransport push in document order and parse it.
+ *
+ * The pushed literal is JSON except for bare `undefined` values, which Apollo
+ * emits for fields a query is still streaming (`"data":undefined`). Those are
+ * healed to null before parsing: the lookbehind/lookahead pins `undefined` to
+ * value position, so the word inside a string literal is never touched. A push
+ * that still fails to parse is skipped rather than failing the page.
+ *
+ * @param {string} html raw HTML
+ * @returns {object[]} parsed push arguments, in document order
+ */
+export function extractApolloTransport(html) {
+  const pushes = [];
+  APOLLO_TRANSPORT_RE.lastIndex = 0;
+  let match;
+  while ((match = APOLLO_TRANSPORT_RE.exec(html)) !== null) {
+    const literal = readBracketedLiteral(html, APOLLO_TRANSPORT_RE.lastIndex);
+    if (!literal) continue;
+    APOLLO_TRANSPORT_RE.lastIndex += literal.length;
+    try {
+      pushes.push(JSON.parse(literal.replace(/(?<=[:,[])\s*undefined\s*(?=[,}\]])/g, 'null')));
+    } catch {
+      // Not JSON we can heal — skip this push, keep the rest.
+    }
+  }
+  return pushes;
+}
+
 const serializedBytes = (value) => Buffer.byteLength(JSON.stringify(value) ?? '');
 
 /**
@@ -253,6 +290,17 @@ export function extractEmbeddedState(rawHtml) {
       variable: 'self.__next_f',
       bytes: serializedBytes(rows),
       note: `${flight.chunks} RSC flight chunks concatenated into ${Object.keys(rows).length} rows, keyed by row id`
+    });
+  }
+
+  const apolloPushes = extractApolloTransport(html);
+  if (apolloPushes.length > 0) {
+    data.apollo_ssr_transport = apolloPushes;
+    found.push({
+      name: 'apollo_ssr_transport',
+      variable: 'window[Symbol.for("ApolloSSRDataTransport")]',
+      bytes: serializedBytes(apolloPushes),
+      note: `${apolloPushes.length} streaming-SSR push(es), in document order`
     });
   }
 

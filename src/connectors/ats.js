@@ -398,8 +398,10 @@ export const ATS_TEMPLATES = [
     name: 'Ashby Job Board',
     description:
       'Read a company\'s whole Ashby job board from the Public Job Posting API rather than the ' +
-      'rendered careers page: every listed job with its department, team, employment type, ' +
-      'workplace type and plain-text description in one request.',
+      'rendered careers page: every listed job with its department, team, employment type and ' +
+      'workplace type in one request. Descriptions are opt-in — pass descriptions: true — ' +
+      'because they are most of the payload: OpenAI\'s 767-job board is 5.9 MB with them and ' +
+      'a fraction of that without.',
     targetPattern: /(jobs|api)\.ashbyhq\.com\//i,
 
     /** `company` is Ashby's jobs page name — the segment in https://jobs.ashbyhq.com/<name>. */
@@ -418,7 +420,7 @@ export const ATS_TEMPLATES = [
       return company ? ashbyUrl({ company }) : url;
     },
 
-    extractList(body, url) {
+    extractList(body, url, params = {}) {
       const payload = parseJson(body, () =>
         notJson('Ashby job board', url, 'the Ashby Public Job Posting API')
       );
@@ -446,7 +448,11 @@ export const ATS_TEMPLATES = [
         remote: isRemote(j.workplaceType),
         published_at: isoDate(j.publishedAt),
         updated_at: null,
-        description: str(j.descriptionPlain),
+        // The API has no query switch for this, so the trim happens here:
+        // descriptions are most of the payload (OpenAI's 767-job board is
+        // 5.9 MB with them, 2026-09-01), matching Greenhouse content:true
+        // and Workable details:true.
+        description: params?.descriptions === true ? str(j.descriptionPlain) : null,
         source: 'ashby-jobs',
         raw_extra: {
           workplace_type: str(j.workplaceType),
@@ -457,7 +463,15 @@ export const ATS_TEMPLATES = [
         }
       }));
 
-      return listResult(items, { api_version: str(payload.apiVersion) });
+      // The API carries no organization name anywhere in its payload; the
+      // board slug — from the caller's params, or the path segment of the
+      // API URL — is the one identity the response itself confirms (every
+      // jobUrl embeds it), and beats reporting null.
+      const company =
+        str(params?.company) ||
+        (url ? str(new URL(url).pathname.split('/').filter(Boolean).pop()) : null);
+
+      return listResult(items, { company, api_version: str(payload.apiVersion) });
     }
   },
 

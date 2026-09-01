@@ -199,7 +199,7 @@ describe('shopify-product registration', () => {
   test('HTML templates still run through cheerio', async () => {
     const result = await registry.run(
       'github-repo',
-      '<html><body><h1 class="repository-content">owner/repo</h1></body></html>',
+      '<html><body><div class="repository-content"><h1>owner/repo</h1></div></body></html>',
       'https://github.com/owner/repo'
     );
     assert.ok(result.data, 'existing templates must be unaffected');

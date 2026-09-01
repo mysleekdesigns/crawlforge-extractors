@@ -166,3 +166,25 @@ describe('amazon-product page facts', () => {
     assert.deepEqual((await run('<span id="productTitle">Echo Dot</span>')).category_breadcrumb, []);
   });
 });
+
+describe('amazon-product interstitial and empty-record guards', () => {
+  // amazon.es answered an HTTP 200 "Seguir comprando" robot check whose only
+  // form posts to /errors/validateCaptcha; the template returned success with
+  // every field null (observed live 2026-09-01).
+  test('a captcha interstitial fails loudly instead of returning an all-null record', async () => {
+    const interstitial = `
+      <h4>Escribe los caracteres que ves en la imagen</h4>
+      <form method="get" action="/errors/validateCaptcha" name="">
+        <input type="hidden" name="amzn" value="x"><input type="text" name="field-keywords">
+      </form>
+      <!-- api-services-support@amazon.com -->`;
+    await assert.rejects(() => run(interstitial), /captcha interstitial/);
+  });
+
+  test('an unrecognised page with no product markup fails loudly, not all-null', async () => {
+    await assert.rejects(
+      () => run('<div><p>Something went wrong.</p></div>'),
+      /extracted no data — every field came back empty/
+    );
+  });
+});

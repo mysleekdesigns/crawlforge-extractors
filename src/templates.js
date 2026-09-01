@@ -47,6 +47,7 @@ import { load } from 'cheerio';
 // have made one file the whole package.
 import { ATS_TEMPLATES } from './connectors/ats.js';
 import { GOV_TEMPLATES } from './connectors/gov.js';
+import { extractApolloTransport } from './embeddedState.js';
 import { safeHref } from './urls.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -543,6 +544,16 @@ export const TEMPLATES = [
     description: 'Scrape an Amazon product page for title, price, rating, reviews, ASIN, and description.',
     targetPattern: /amazon\.(com|co\.uk|de|fr|jp|ca|com\.au)/i,
     extract($) {
+      // Amazon serves its robot check as HTTP 200: a "Continue shopping" page
+      // whose only form posts to /errors/validateCaptcha. Every selector below
+      // misses on it, which used to come back as a silent all-null record
+      // (amazon.es, observed 2026-09-01) — name the block instead.
+      if ($('form[action*="validateCaptcha"]').length > 0) {
+        throw new Error(
+          'Amazon answered with a captcha interstitial (an HTTP 200 robot check), not the product page. ' +
+          'The product data is not in this response — retry later or from a different IP.'
+        );
+      }
       const bullets = $('#feature-bullets ul li span.a-list-item')
         .map((_, el) => tidy($(el).text()))
         .get()
@@ -734,17 +745,50 @@ export const TEMPLATES = [
   {
     id: 'producthunt-launch',
     name: 'Product Hunt Launch',
-    description: 'Scrape a Product Hunt product page for name, tagline, vote count, topics, and maker details.',
-    targetPattern: /producthunt\.com\/posts\//i,
-    extract($) {
+    description:
+      'Scrape a Product Hunt product page for name, tagline, description, categories, website, ' +
+      'and follower/review counts. Product Hunt folded /posts/* launch pages into /products/* ' +
+      'product hubs, which carry no product-level vote count — followers and reviews are the ' +
+      "page's engagement numbers now.",
+    targetPattern: /producthunt\.com\/(posts|products)\//i,
+    extractRaw(body, url) {
+      // The RSC flight stream on these pages is a near-empty shell; the data
+      // the UI renders from — the GraphQL Product record — rides in Apollo's
+      // streaming-SSR transport pushes instead.
+      const products = [];
+      const walk = (node) => {
+        if (!node || typeof node !== 'object') return;
+        if (node.__typename === 'Product') products.push(node);
+        for (const value of Object.values(node)) walk(value);
+      };
+      for (const push of extractApolloTransport(body)) walk(push);
+      // The transport carries several Product objects (latestLaunch.product,
+      // forum subjects); the page's own is the one with the page-level fields.
+      const product =
+        products.find(p => 'followersCount' in p) || products.find(p => 'websiteUrl' in p) || null;
+
+      const $ = load(body);
+      const metaName = attr($, 'meta[property="og:title"]', 'content');
+      const categories = Array.isArray(product?.categories)
+        ? product.categories.map(c => c?.name).filter(Boolean)
+        : null;
+      // The DOM fallback's href carries PH's ?ref=producthunt tracking param.
+      const domWebsite = (attr($, 'a[data-test="visit-website-button"]', 'href') || '')
+        .replace(/([?&])ref=producthunt(?=&|$)/, '$1')
+        .replace(/[?&]$/, '') || null;
+
       return {
-        name: attr($, 'meta[property="og:title"]', 'content'),
-        tagline: attr($, 'meta[property="og:description"]', 'content'),
+        name: product?.name || (metaName ? metaName.replace(/\s*\|\s*Product Hunt\s*$/i, '') : null),
+        tagline: product?.tagline || attr($, 'meta[property="og:description"]', 'content'),
+        description: product?.description ?? null,
         image: attr($, 'meta[property="og:image"]', 'content'),
-        url: safeHref(attr($, 'meta[property="og:url"]', 'content')),
-        votes: text($, '[data-test="vote-button"] span') || text($, 'button[data-vote-button]'),
-        topics: list($, 'a[href*="/topics/"]'),
-        website: safeHref(attr($, 'a[data-test="product-link"]', 'href') || attr($, 'a[href][rel="noopener"][target="_blank"]', 'href'))
+        url: safeHref(attr($, 'meta[property="og:url"]', 'content')) || url,
+        website: safeHref(product?.websiteUrl || domWebsite),
+        // null = the data layer was missing, [] = present with no categories.
+        topics: categories,
+        followers: product?.followersCount ?? null,
+        reviews_count: product?.reviewsCount ?? null,
+        reviews_rating: product?.reviewsRating ?? null
       };
     }
   },
@@ -1030,6 +1074,21 @@ export class TemplateRegistry {
       ? template.extractRaw(body, url)
       : template.extract(load(body));
 
+    // A record with literally every field empty is not a page with no data —
+    // it is a page the template's selectors all missed: an interstitial
+    // (captcha, consent wall, bot check) served as HTTP 200, or a layout
+    // change. Reporting it as success is how amazon.es's captcha page came
+    // back as a clean all-null product (2026-09-01). Fail loudly instead.
+    const values = data && typeof data === 'object' && !Array.isArray(data) ? Object.values(data) : [];
+    const isEmpty = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
+    if (values.length > 0 && values.every(isEmpty)) {
+      throw new Error(
+        `Template "${id}" matched the page but extracted no data — every field came back empty. ` +
+        'The server likely answered with an interstitial (captcha, consent or bot wall) or the site changed ' +
+        'its layout. This is an extraction failure, not a page with nothing on it.'
+      );
+    }
+
     return {
       template: id,
       template_name: template.name,
@@ -1069,7 +1128,10 @@ export class TemplateRegistry {
       template_name: template.name,
       ...(url !== undefined ? { url } : {}),
       ...(params !== undefined ? { params } : {}),
-      data: template.extractList(body, url),
+      // params ride along for connectors whose upstream API has no query
+      // switch for an option (Ashby's descriptions opt-in trims at extract
+      // time; Greenhouse/Workable put theirs in the URL instead).
+      data: template.extractList(body, url, params),
       extractedAt: new Date().toISOString()
     };
   }
