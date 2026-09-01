@@ -226,3 +226,45 @@ describe('a page with no embedded state', () => {
     assert.deepEqual(warnings, []);
   });
 });
+
+describe('Apollo streaming-SSR transport (Product Hunt)', () => {
+  // (window[Symbol.for("ApolloSSRDataTransport")] ??= []).push({...}) — the
+  // data layer on producthunt.com product pages, whose RSC flight stream is a
+  // near-empty shell. The pushed literal is JSON except for bare `undefined`
+  // values on still-streaming fields.
+  const page = (payload) =>
+    `<html><body><script>(window[Symbol.for("ApolloSSRDataTransport")] ??= []).push(${payload})</script></body></html>`;
+
+  test('a push is parsed and reported, with undefined healed to null', () => {
+    const { data, found } = extractEmbeddedState(
+      page('{"rehydrate":{"_R_1":{"data":undefined,"loading":true},"_R_2":{"data":{"product":{"name":"ChatGPT"}}}}}')
+    );
+    assert.equal(data.apollo_ssr_transport.length, 1);
+    const push = data.apollo_ssr_transport[0];
+    assert.equal(push.rehydrate._R_1.data, null, 'streaming placeholder healed to null');
+    assert.equal(push.rehydrate._R_2.data.product.name, 'ChatGPT');
+    const entry = found.find(f => f.name === 'apollo_ssr_transport');
+    assert.match(entry.variable, /ApolloSSRDataTransport/);
+    assert.match(entry.note, /1 streaming-SSR push/);
+  });
+
+  test('the word undefined inside a string value is never rewritten', () => {
+    const { data } = extractEmbeddedState(page('{"a":"result was undefined","b":undefined}'));
+    assert.equal(data.apollo_ssr_transport[0].a, 'result was undefined');
+    assert.equal(data.apollo_ssr_transport[0].b, null);
+  });
+
+  test('multiple pushes arrive in document order', () => {
+    const html =
+      '<script>(window[Symbol.for("ApolloSSRDataTransport")] ??= []).push({"n":1})</script>' +
+      '<script>(window[Symbol.for("ApolloSSRDataTransport")] ??= []).push({"n":2})</script>';
+    const { data } = extractEmbeddedState(html);
+    assert.deepEqual(data.apollo_ssr_transport.map(p => p.n), [1, 2]);
+  });
+
+  test('a push that is not JSON even after healing is skipped, not fatal', () => {
+    const html = page('{broken') + page('{"ok":true}');
+    const { data } = extractEmbeddedState(html);
+    assert.deepEqual(data.apollo_ssr_transport, [{ ok: true }]);
+  });
+});

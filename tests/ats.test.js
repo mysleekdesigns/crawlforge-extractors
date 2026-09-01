@@ -365,9 +365,10 @@ describe('ashby-jobs', () => {
   });
 
   test('reads real jobs off the captured board', () => {
-    const { items, count, api_version } = BOARDS['ashby-jobs']();
+    const { items, count, api_version, company } = BOARDS['ashby-jobs']();
     assert.equal(count, 4);
     assert.equal(api_version, '1');
+    assert.equal(company, 'ramp', 'board slug from the API URL — the payload carries no org name');
 
     const onsite = items.find(j => j.id === '6a20b3b8-8111-4cbd-be4b-423b60660738');
     assert.deepEqual(onsite, {
@@ -381,7 +382,7 @@ describe('ashby-jobs', () => {
       remote: false,
       published_at: '2026-07-28T18:22:37.155Z',
       updated_at: null,
-      description: onsite.description,
+      description: null,
       source: 'ashby-jobs',
       raw_extra: {
         workplace_type: 'OnSite',
@@ -389,6 +390,25 @@ describe('ashby-jobs', () => {
         apply_url: 'https://jobs.ashbyhq.com/ramp/6a20b3b8-8111-4cbd-be4b-423b60660738/application'
       }
     });
+  });
+
+  test('descriptions are opt-in, like greenhouse content:true (5.9 MB OpenAI board regression)', () => {
+    const url = 'https://api.ashbyhq.com/posting-api/job-board/ramp';
+    const summary = template.extractList(fixture('ashby-jobs.json'), url);
+    assert.ok(summary.items.every(j => j.description === null), 'no descriptions without the flag');
+
+    const full = template.extractList(fixture('ashby-jobs.json'), url, { descriptions: true });
+    const withText = full.items.find(j => j.id === '6a20b3b8-8111-4cbd-be4b-423b60660738');
+    assert.ok(withText.description && withText.description.length > 0, 'flag brings descriptionPlain back');
+  });
+
+  test('company prefers the caller\'s params over the URL slug', () => {
+    const { company } = template.extractList(
+      fixture('ashby-jobs.json'),
+      'https://api.ashbyhq.com/posting-api/job-board/ramp',
+      { company: 'ramp' }
+    );
+    assert.equal(company, 'ramp');
   });
 
   test('a Hybrid job is not reported remote, whatever isRemote says', () => {
