@@ -82,4 +82,12 @@ describe('hacker-news-front-page URL matching', () => {
     assert.equal(hn.targetPattern.test('https://news.ycombinator.com/news'), true);
     assert.equal(hn.targetPattern.test('https://news.ycombinator.com/item?id=1'), false);
   });
+
+  test('matches the other story lists and their pagination (R16)', () => {
+    for (const path of ['/newest', '/front', '/best', '/ask', '/show', '/jobs', '/active', '/news?p=2', '/newest?next=1&n=31']) {
+      assert.equal(hn.targetPattern.test(`https://news.ycombinator.com${path}`), true, path);
+    }
+    assert.equal(hn.targetPattern.test('https://news.ycombinator.com/user?id=pg'), false);
+    assert.equal(hn.targetPattern.test('https://news.ycombinator.com/from?site=example.com'), false);
+  });
 });

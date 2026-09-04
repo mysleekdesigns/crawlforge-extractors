@@ -237,3 +237,82 @@ describe('amazon-product interstitial and empty-record guards', () => {
     );
   });
 });
+
+// Round 16 (2026-09-04): rating and price on the pages that are not amazon.com.
+describe('amazon-product rating on comma-decimal and Japanese marketplaces', () => {
+  const popover = (title) => `<span id="acrPopover" title="${title}"></span>`;
+
+  test('a comma decimal is a decimal, not the integer part', async () => {
+    // Live 2026-09-04: every one of these read as 4.
+    assert.equal((await run(popover('4,8 van 5 sterren'))).rating, 4.8);
+    assert.equal((await run(popover('4,8 su 5 stelle'))).rating, 4.8);
+    assert.equal((await run(popover('4,8 von 5 Sternen'))).rating, 4.8);
+  });
+
+  test('amazon.co.jp states the scale first', async () => {
+    // Live 2026-09-04: "5つ星のうち4.7" read as 5 — the scale, not the rating.
+    assert.equal((await run(popover('5つ星のうち4.7'))).rating, 4.7);
+  });
+
+  test('a perfect score is still 5', async () => {
+    assert.equal((await run(popover('5.0 out of 5 stars'))).rating, 5);
+    assert.equal((await run(popover('5 out of 5 stars'))).rating, 5);
+  });
+});
+
+describe('amazon-product price comes from the buy box, never from another product', () => {
+  const block = (cls, offscreen, symbol, whole, fraction, { symbolLast = false, decimal = '.' } = {}) => {
+    const sym = `<span class="a-price-symbol">${symbol}</span>`;
+    const digits =
+      `<span class="a-price-whole">${whole}<span class="a-price-decimal">${decimal}</span></span>` +
+      `<span class="a-price-fraction">${fraction}</span>`;
+    return `<span class="${cls}"><span class="a-offscreen">${offscreen}</span>` +
+      (symbolLast ? digits + sym : sym + digits) + '</span>';
+  };
+  const carousel = (...prices) =>
+    `<div id="sims-simsContainer_feature_div_0">${prices.map((p) => block('a-price', p, '$', p.slice(1, -3), p.slice(-2))).join('')}</div>`;
+  const swatch = (label) =>
+    `<div id="tmmSwatches"><span class="swatchElement selected"><span class="slot-price"><span>${label}</span></span></span></div>`;
+
+  test('a blank offscreen span in the buy box is rebuilt from the visible digits', async () => {
+    // Live 2026-09-04: amazon.co.uk and amazon.com.au buy boxes carry
+    // <span class="a-offscreen"> </span>; both pages returned price: null.
+    const buyBox = `<div id="corePriceDisplay_desktop_feature_div">${block('a-price priceToPay', ' ', '£', '39', '24')}</div>`;
+    assert.equal((await run(buyBox)).price, '£39.24');
+  });
+
+  test('the rebuilt price keeps the marketplace separator and symbol side', async () => {
+    const nl = '<link rel="canonical" href="https://www.amazon.nl/dp/B000000000">' +
+      block('a-price priceToPay', ' ', '€', '44', '85', { decimal: ',' });
+    assert.equal((await run(nl)).price, '€44,85');
+    const it = '<link rel="canonical" href="https://www.amazon.it/dp/B000000000">' +
+      block('a-price priceToPay', ' ', '€', '32', '89', { decimal: ',', symbolLast: true });
+    assert.equal((await run(it)).price, '32,89€');
+  });
+
+  test('the buy box wins over an earlier struck-through list price and later carousels', async () => {
+    const html =
+      block('a-price a-text-price', '£47.99', '£', '47', '99') +
+      `<div id="corePriceDisplay_desktop_feature_div">${block('a-price priceToPay', '£39.24', '£', '39', '24')}</div>` +
+      carousel('$31.45', '$34.53');
+    assert.equal((await run(html)).price, '£39.24');
+  });
+
+  test('with no buy box, a carousel price is never the product price', async () => {
+    // Live 2026-09-04: amazon.de/.it/.co.jp book pages without a buy box
+    // returned the first "similar products" price as the book's price.
+    const html = carousel('$52.13', '$41.71') + swatch('ab 30,57 USD');
+    const data = await run(html);
+    assert.equal(data.price, 'ab 30,57 USD');
+    assert.equal(data.currency, 'USD');
+    assert.equal((await run('<span id="productTitle">Book</span>' + carousel('$52.13'))).price, null);
+  });
+
+  test('empty range placeholders in the buy box fall through to the swatch', async () => {
+    // Live 2026-09-04: amazon.ca renders priceToPayRangeMin/Max with no text.
+    const html =
+      '<div id="corePrice_feature_div"><span class="a-price priceToPayRangeMin"><span class="a-offscreen"></span></span></div>' +
+      swatch('from $46.88');
+    assert.equal((await run(html)).price, 'from $46.88');
+  });
+});
