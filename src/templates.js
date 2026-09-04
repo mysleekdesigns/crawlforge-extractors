@@ -273,7 +273,80 @@ function amazonByline($) {
   return raw;
 }
 
-/** "4.7 out of 5 stars" → 4.7 */
+/**
+ * The visible price. Amazon renders it twice: an offscreen string for screen
+ * readers and a whole/decimal/fraction triplet for the eye — and a product
+ * page carries dozens of such blocks that are not this product's price at
+ * all. Reading the first `.a-price` on the page returned, on amazon.de/.it/
+ * .co.jp book pages served without a buy box, the price of the first item in
+ * the "similar products" carousel ("52,13USD" for a book listed from 30,57
+ * USD), and on amazon.nl/.co.uk/.com.au it returned null because the buy
+ * box's offscreen span is a blank " " (all observed 2026-09-04). So the block
+ * is chosen by where it sits: the buy box first (Amazon's own priceToPay
+ * class, or the corePrice/apex containers), then any block outside the
+ * regions that always show OTHER products (carousels, bundles, the comparison
+ * table, the other-sellers link) or a struck-through list price, then the
+ * legacy priceblock ids, and last the selected format swatch — a book without
+ * a buy box shows "ab 30,57 USD" / "da 42,16 €" there, and the qualifier is
+ * kept because that is a from-price, not the price.
+ *
+ * Within a block: the offscreen string when it is there; when it is blank,
+ * the triplet is rebuilt as symbol + whole + separator + fraction, with the
+ * symbol on the side the markup puts it ("€44,85", "39.24£" never occurs but
+ * "32,89€" does). On amazon.com.au the a-price-decimal span can be EMPTY, so
+ * the offscreen string reads "$1105" for A$11.05 — whole "11" + fraction "05"
+ * with no separator, a price 100× too high that every downstream guard
+ * accepts. When the offscreen digits are exactly whole+fraction and nothing
+ * separates the fraction, the separator is put back: "." unless the
+ * marketplace writes its decimals with a comma.
+ */
+const AMAZON_OTHER_PRODUCT_PRICE =
+  '[id^="sims-"], [id^="sp_"], .a-carousel, [data-a-carousel-options], #HLCXComparisonTable, ' +
+  '#olpLinkWidget_feature_div, #dynamic-aod-ingress-box, [id*="sponsored"], [class*="fbt"], ' +
+  '#twister-plus-tool-tip, #twisterPlusPriceSubtotalWWDesktop_feature_div, .a-text-price';
+const AMAZON_BUY_BOX_PRICE =
+  '.priceToPay, .apexPriceToPay, #corePrice_feature_div *, #corePriceDisplay_desktop_feature_div *, ' +
+  '#apex_desktop *, #corePrice_desktop *';
+
+function amazonDecimalSeparator($) {
+  const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
+  return /\.(de|fr|es|it|nl|se|pl|com\.br|com\.tr|com\.be)$/.test(host) ? ',' : '.';
+}
+
+function amazonBlockPrice($, block, separator) {
+  const $block = $(block);
+  const offscreen = tidy($block.find('.a-offscreen').first().text());
+  const whole = ($block.find('.a-price-whole').first().text() || '').replace(/\D/g, '');
+  const fraction = ($block.find('.a-price-fraction').first().text() || '').replace(/\D/g, '');
+  if (offscreen) {
+    if (!whole || !fraction) return offscreen;
+    if (offscreen.replace(/\D/g, '') !== whole + fraction) return offscreen;
+    if (new RegExp(`[.,]${fraction}(?!\\d)`).test(offscreen)) return offscreen;
+    return offscreen.replace(new RegExp(`(\\d)(${fraction})(?!\\d)`), `$1${separator}$2`);
+  }
+  if (!whole) return null;
+  const amount = fraction ? `${whole}${separator}${fraction}` : whole;
+  const symbol = tidy($block.find('.a-price-symbol').first().text()) || '';
+  const symbolFirst = $block.find('.a-price-symbol, .a-price-whole').first().hasClass('a-price-symbol');
+  return symbolFirst ? `${symbol}${amount}` : `${amount}${symbol}`;
+}
+
+function amazonPrice($) {
+  const separator = amazonDecimalSeparator($);
+  const own = $('.a-price').filter((_, el) => $(el).closest(AMAZON_OTHER_PRODUCT_PRICE).length === 0);
+  for (const pool of [own.filter(AMAZON_BUY_BOX_PRICE), own]) {
+    for (const block of pool.toArray()) {
+      const price = amazonBlockPrice($, block, separator);
+      if (price) return price;
+    }
+  }
+  return (
+    text($, '#priceblock_ourprice') ||
+    text($, '#priceblock_dealprice') ||
+    tidy(text($, '#tmmSwatches .swatchElement.selected .slot-price'))
+  );
+}
+
 /**
  * ISO 4217 code for an Amazon price string. The add-to-cart form's hidden
  * currencyCode input is absent on pages Amazon serves without a buy box
@@ -281,29 +354,6 @@ function amazonByline($) {
  * off the price itself: an explicit code ("52,02USD"), else the symbol. A
  * bare "$" belongs to several marketplaces, told apart by the canonical host.
  */
-/**
- * The visible price. Amazon renders it twice: an offscreen string for screen
- * readers and a whole/decimal/fraction triplet for the eye. On amazon.com.au
- * (observed 2026-09-04) the a-price-decimal span is EMPTY, so the offscreen
- * string reads "$1105" for A$11.05 — whole "11" + fraction "05" with no
- * separator, a price 100× too high that every downstream guard accepts. When
- * the offscreen digits are exactly whole+fraction and nothing separates the
- * fraction, the separator is put back: "." unless the marketplace writes its
- * decimals with a comma.
- */
-function amazonPrice($) {
-  const offscreen = text($, '.a-price .a-offscreen');
-  if (!offscreen) return null;
-  const whole = (text($, '.a-price .a-price-whole') || '').replace(/\D/g, '');
-  const fraction = (text($, '.a-price .a-price-fraction') || '').replace(/\D/g, '');
-  if (!whole || !fraction) return offscreen;
-  if (offscreen.replace(/\D/g, '') !== whole + fraction) return offscreen;
-  if (new RegExp(`[.,]${fraction}(?!\\d)`).test(offscreen)) return offscreen;
-  const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
-  const separator = /\.(de|fr|es|it|nl|se|pl|com\.br|com\.tr|com\.be)$/.test(host) ? ',' : '.';
-  return offscreen.replace(new RegExp(`(\\d)(${fraction})(?!\\d)`), `$1${separator}$2`);
-}
-
 function amazonCurrency($, price) {
   if (!price) return null;
   const code = price.match(/(USD|EUR|GBP|INR|JPY|CAD|AUD|MXN|BRL|SGD|AED|SAR|PLN|TRY)(?![A-Z])/);
@@ -334,9 +384,20 @@ function hnCommentCount(label) {
   return match ? match[1] : value;
 }
 
+/**
+ * "4.7 out of 5 stars" → 4.7. The first number is not the rating everywhere:
+ * amazon.nl writes "4,8 van 5 sterren" (a comma decimal, read as 4) and
+ * amazon.co.jp "5つ星のうち4.7" (the scale comes first, read as 5) — both
+ * plausible wrong numbers, observed 2026-09-04. Every number is read, comma
+ * decimals included, and when one of two is the 5-star scale the other one is
+ * the rating.
+ */
 function amazonRating(value) {
-  const match = tidy(value)?.match(/([\d.]+)/);
-  return match ? Number.parseFloat(match[1]) : null;
+  const numbers = (tidy(value)?.match(/\d+(?:[.,]\d+)?/g) || [])
+    .map((n) => Number.parseFloat(n.replace(',', '.')));
+  if (numbers.length === 0) return null;
+  if (numbers.length === 1) return numbers[0];
+  return numbers.find((n) => n !== 5) ?? 5;
 }
 
 /** Both "(198,594)" and "198,594 global ratings" mean 198594. */
@@ -625,7 +686,7 @@ export const TEMPLATES = [
         .map(fullSizeImage)
         .filter(Boolean);
 
-      const price = amazonPrice($) || text($, '#priceblock_ourprice') || text($, '#priceblock_dealprice');
+      const price = amazonPrice($);
 
       return {
         title: tidy(text($, '#productTitle')),
@@ -783,7 +844,9 @@ export const TEMPLATES = [
     id: 'hacker-news-front-page',
     name: 'Hacker News Front Page',
     description: 'Scrape the Hacker News front page for a list of stories with title, URL, score, and comment count.',
-    targetPattern: /news\.ycombinator\.com(\/news)?\/?$/i,
+    // The same story table serves /newest, /front, /best, /ask, /show, /jobs
+    // and /active, and every one of them pages with ?p=N.
+    targetPattern: /news\.ycombinator\.com(?:\/(?:news|newest|front|best|ask|show|jobs|active))?\/?(?:[?#].*)?$/i,
     extract($) {
       const stories = [];
       $('tr.athing').each((_, el) => {
