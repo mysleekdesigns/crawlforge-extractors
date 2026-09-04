@@ -1,0 +1,66 @@
+{
+  "@context": "https://schema.org",
+  "@type": "ProductGroup",
+  "name": "Arrival 5&quot; Shorts",
+  "description": "PROGRESS MADE DAILYMade with essential performance technology, Arrival is built to make progress in, whether it’s advanc",
+  "url": "https://www.gymshark.com/products/gymshark-arrival-5-shorts-black-ss22",
+  "brand": {
+    "@type": "Brand",
+    "name": "Gymshark | We Do Gym"
+  },
+  "productGroupID": "6804846346442",
+  "variesBy": [
+    "https://schema.org/size"
+  ],
+  "image": [
+    "https://cdn.shopify.com/s/files/1/0156/6146/files/images-Arrival5ShortsBlackA2A1M_BBBB_1826_A_Edit.jpg?v=1750084637"
+  ],
+  "color": "black",
+  "category": "shorts",
+  "hasVariant": [
+    {
+      "@type": "Product",
+      "name": "Arrival 5&quot; Shorts",
+      "description": "PROGRESS MADE DAILYMade with essential performance technolog",
+      "size": "xs",
+      "sku": "A2A1M-BBBB",
+      "mpn": "A2A1M-BBBB-XS",
+      "image": "https://cdn.shopify.com/s/files/1/0156/6146/files/images-Arrival5ShortsBlackA2A1M_BBBB_1826_A_Edit.jpg?v=1750084637",
+      "url": "https://www.gymshark.com/products/gymshark-arrival-5-shorts-black-ss22",
+      "gtin": "5057913931872",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": 26,
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gymshark | We Do Gym"
+        }
+      }
+    },
+    {
+      "@type": "Product",
+      "name": "Arrival 5&quot; Shorts",
+      "description": "PROGRESS MADE DAILYMade with essential performance technolog",
+      "size": "s",
+      "sku": "A2A1M-BBBB",
+      "mpn": "A2A1M-BBBB-S",
+      "image": "https://cdn.shopify.com/s/files/1/0156/6146/files/images-Arrival5ShortsBlackA2A1M_BBBB_1826_A_Edit.jpg?v=1750084637",
+      "url": "https://www.gymshark.com/products/gymshark-arrival-5-shorts-black-ss22",
+      "gtin": "5057913931865",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "USD",
+        "price": 26,
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "Gymshark | We Do Gym"
+        }
+      }
+    }
+  ]
+}

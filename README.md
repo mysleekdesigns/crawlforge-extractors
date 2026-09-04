@@ -167,6 +167,25 @@ A source that is present but is not JSON — Nuxt 2's IIFE wrapper, Nuxt 3's
 unquoted-key object literal — is reported in `warnings` unparsed. Nothing here
 calls `eval`.
 
+### A Shopify product from the page's JSON-LD
+
+`shopifyProductFromJsonLd` reads the record `shopify-product` returns from the
+product page's own schema.org JSON-LD — a `Product`, a `ProductGroup` with one
+`hasVariant` `Product` per size, or an `AggregateOffer` — for stores that
+refuse `/products/<handle>.json` (gymshark.com answers it with 403 while the
+page itself is public).
+
+```js
+import { shopifyProductFromJsonLd } from 'crawlforge-extractors';
+
+const { found, data, reason } = shopifyProductFromJsonLd(html, response.url);
+// data.source === 'json-ld'; data.price, data.variants[].options, …
+```
+
+JSON-LD carries no per-variant stock count, compare-at price or option names,
+so those fields are null. Pass the page URL after redirects: a `/collections/`
+URL is reported in `reason` as a retired handle.
+
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·

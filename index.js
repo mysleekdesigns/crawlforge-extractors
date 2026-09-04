@@ -29,3 +29,5 @@ export { structureSignature, structuralSimilarity } from './src/structure.js';
 export { extractEmbeddedState } from './src/embeddedState.js';
 
 export { parseJsonPath, selectJsonPath } from './src/jsonPath.js';
+
+export { shopifyProductFromJsonLd } from './src/shopifyJsonLd.js';

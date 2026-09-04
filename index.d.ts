@@ -227,4 +227,49 @@ export declare function parseJsonPath(path: string): string[];
  */
 export declare function selectJsonPath(root: unknown, path: string): unknown;
 
+/** One variant as read from a product page's JSON-LD; stock counts and compare-at prices are not in JSON-LD. */
+export interface ShopifyJsonLdVariant {
+  id: string | null;
+  title: string | null;
+  price: string | null;
+  compare_at_price: null;
+  sku: string | null;
+  available: boolean | null;
+  inventory_quantity: null;
+  options: string[];
+}
+
+/** The shopify-product record shape, read from schema.org JSON-LD instead of /products/<handle>.json. */
+export interface ShopifyJsonLdProduct {
+  title: string | null;
+  vendor: string | null;
+  product_type: string | null;
+  handle: string | null;
+  product_id: string | null;
+  price: string | null;
+  compare_at_price: null;
+  on_sale: null;
+  currency: string | null;
+  price_min: string | null;
+  price_max: string | null;
+  available: boolean | null;
+  variants: ShopifyJsonLdVariant[];
+  options: string[];
+  description: string | null;
+  images: string[];
+  url: string;
+  source: 'json-ld';
+}
+
+/**
+ * A Shopify product from the product page's own schema.org JSON-LD (Product,
+ * ProductGroup with hasVariant, AggregateOffer), for stores that refuse
+ * /products/<handle>.json. `url` is the page URL after redirects; a
+ * /collections/ URL is named in `reason` as a retired handle.
+ */
+export declare function shopifyProductFromJsonLd(
+  html: string,
+  url: string
+): { found: true; data: ShopifyJsonLdProduct } | { found: false; reason: string };
+
 export default TemplateRegistry;
