@@ -274,6 +274,35 @@ function amazonByline($) {
 }
 
 /** "4.7 out of 5 stars" → 4.7 */
+/**
+ * ISO 4217 code for an Amazon price string. The add-to-cart form's hidden
+ * currencyCode input is absent on pages Amazon serves without a buy box
+ * (amazon.de and amazon.in book pages, R14 2026-09-03), so the code is read
+ * off the price itself: an explicit code ("52,02USD"), else the symbol. A
+ * bare "$" belongs to several marketplaces, told apart by the canonical host.
+ */
+function amazonCurrency($, price) {
+  if (!price) return null;
+  const code = price.match(/(USD|EUR|GBP|INR|JPY|CAD|AUD|MXN|BRL|SGD|AED|SAR|PLN|TRY)(?![A-Z])/);
+  if (code) return code[1];
+  if (price.includes('₹')) return 'INR';
+  if (price.includes('€')) return 'EUR';
+  if (price.includes('£')) return 'GBP';
+  if (price.includes('¥') || price.includes('￥')) return 'JPY';
+  if (price.includes('R$')) return 'BRL';
+  if (price.includes('zł')) return 'PLN';
+  if (price.includes('₺')) return 'TRY';
+  if (price.includes('$')) {
+    const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
+    if (/\.ca$/.test(host)) return 'CAD';
+    if (/\.com\.au$/.test(host)) return 'AUD';
+    if (/\.com\.mx$/.test(host)) return 'MXN';
+    if (/\.sg$/.test(host)) return 'SGD';
+    return 'USD';
+  }
+  return null;
+}
+
 function amazonRating(value) {
   const match = tidy(value)?.match(/([\d.]+)/);
   return match ? Number.parseFloat(match[1]) : null;
@@ -562,12 +591,17 @@ export const TEMPLATES = [
         .map(fullSizeImage)
         .filter(Boolean);
 
+      const price = text($, '.a-price .a-offscreen') || text($, '#priceblock_ourprice') || text($, '#priceblock_dealprice');
+
       return {
         title: tidy(text($, '#productTitle')),
-        price: text($, '.a-price .a-offscreen') || text($, '#priceblock_ourprice') || text($, '#priceblock_dealprice'),
+        price,
         // Amazon ships no priceCurrency meta tag — the ISO code is a hidden
-        // field on the add-to-cart form.
-        currency: attr($, 'input[name*="currencyCode"]', 'value') || attr($, 'meta[itemprop="priceCurrency"]', 'content'),
+        // field on the add-to-cart form, and off the price where there is none.
+        currency:
+          attr($, 'input[name*="currencyCode"]', 'value') ||
+          attr($, 'meta[itemprop="priceCurrency"]', 'content') ||
+          amazonCurrency($, price),
         rating: amazonRating(attr($, '#acrPopover', 'title') || text($, '#averageCustomerReviews .a-icon-alt')),
         review_count: amazonCount(text($, '#acrCustomerReviewText') || text($, '[data-hook="total-review-count"]')),
         asin: text($, 'input#ASIN') || attr($, 'input[name="ASIN"]', 'value'),
@@ -729,7 +763,8 @@ export const TEMPLATES = [
           title: $titleLink.text().trim(),
           url: safeHref($titleLink.attr('href')),
           site: $row.find('.sitebit a').text().trim() || null,
-          score: $score.text().replace(' points', '').trim() || null,
+          // "1 point" on a fresh story and "3 points" on the rest — strip both.
+          score: $score.text().replace(/\s*points?$/, '').trim() || null,
           author: $subtext.find('.hnuser').text().trim() || null,
           // ".age a" wraps the relative age string ("3 hours ago"); its href is the item permalink.
           posted: $subtext.find('.age a').text().trim() || null,

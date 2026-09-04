@@ -90,6 +90,29 @@ describe('amazon-product currency', () => {
   test('a schema.org meta tag is still honoured where present', async () => {
     assert.equal((await run('<meta itemprop="priceCurrency" content="GBP">')).currency, 'GBP');
   });
+
+  test('with no form and no meta tag, the code is read off the price', async () => {
+    // amazon.de and amazon.in book pages (R14, 2026-09-03) render no buy-box
+    // form; the price is what carries the currency.
+    const price = (p) => `<span class="a-price"><span class="a-offscreen">${p}</span></span>`;
+    assert.equal((await run(price('52,02USD'))).currency, 'USD');
+    assert.equal((await run(price('₹1,950.00'))).currency, 'INR');
+    assert.equal((await run(price('45,99 €'))).currency, 'EUR');
+    assert.equal((await run(price('£31.99'))).currency, 'GBP');
+  });
+
+  test('a bare "$" is the marketplace dollar, told by the canonical host', async () => {
+    const page = (host) =>
+      `<link rel="canonical" href="https://${host}/dp/B000000000">` +
+      '<span class="a-price"><span class="a-offscreen">$12.99</span></span>';
+    assert.equal((await run(page('www.amazon.ca'))).currency, 'CAD');
+    assert.equal((await run(page('www.amazon.com.au'))).currency, 'AUD');
+    assert.equal((await run(page('www.amazon.com'))).currency, 'USD');
+  });
+
+  test('no price, no currency', async () => {
+    assert.equal((await run('<span id="productTitle">x</span>')).currency, null);
+  });
 });
 
 describe('amazon-product images', () => {
