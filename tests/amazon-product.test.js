@@ -80,6 +80,32 @@ describe('amazon-product rating and review count', () => {
   });
 });
 
+describe('amazon-product price', () => {
+  const triplet = (offscreen, whole, fraction, decimal = '') =>
+    `<span class="a-price"><span class="a-offscreen">${offscreen}</span>` +
+    `<span class="a-price-symbol">$</span><span class="a-price-whole">${whole}` +
+    `<span class="a-price-decimal">${decimal}</span></span>` +
+    `<span class="a-price-fraction">${fraction}</span></span>`;
+
+  test('amazon.com.au: an empty decimal span no longer yields a price 100× too high', async () => {
+    // Live 2026-09-04: /dp/0141036141 rendered the offscreen string "$1105"
+    // for A$11.05 — whole "11", fraction "05", decimal span empty.
+    assert.equal((await run(triplet('$1105', '11', '05'))).price, '$11.05');
+    assert.equal((await run(triplet('$799', '7', '99'))).price, '$7.99');
+  });
+
+  test('a well-formed offscreen price is passed through untouched', async () => {
+    assert.equal((await run(triplet('$1,105.00', '1,105', '00', '.'))).price, '$1,105.00');
+    assert.equal((await run(triplet('$105.05', '105', '05', '.'))).price, '$105.05');
+    assert.equal((await run('<span class="a-price"><span class="a-offscreen">52,02USD</span></span>')).price, '52,02USD');
+  });
+
+  test('a comma marketplace gets its comma back', async () => {
+    const html = '<link rel="canonical" href="https://www.amazon.de/dp/B000000000">' + triplet('4599 €', '45', '99');
+    assert.equal((await run(html)).price, '45,99 €');
+  });
+});
+
 describe('amazon-product currency', () => {
   test('the ISO code comes off the add-to-cart form', async () => {
     // Amazon ships no priceCurrency meta tag on any current page.

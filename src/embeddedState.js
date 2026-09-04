@@ -23,7 +23,11 @@ const STATE_VARIABLES = [
   { name: 'nuxt', variable: '__NUXT__' },
   { name: 'apollo_state', variable: '__APOLLO_STATE__' },
   { name: 'initial_state', variable: '__INITIAL_STATE__' },
-  { name: 'preloaded_state', variable: '__PRELOADED_STATE__' }
+  { name: 'preloaded_state', variable: '__PRELOADED_STATE__' },
+  // nytimes.com ships its whole front page as window.__preloadedData; with
+  // only the four names above, a 1.1 MB page surfaced nothing but its
+  // <script type="application/json"> blocks (R15, 2026-09-04).
+  { name: 'preloaded_data', variable: '__preloadedData' }
 ];
 
 // Script bodies cannot contain a literal "</script", so a non-greedy match is
@@ -42,6 +46,33 @@ const NEXT_F_PUSH_RE = /self\.__next_f\.push\(\s*\[\s*1\s*,\s*/g;
 // (producthunt.com product pages, observed 2026-09-01).
 const APOLLO_TRANSPORT_RE =
   /Symbol\.for\(\s*["']ApolloSSRDataTransport["']\s*\)\s*\]\s*\?\?=\s*\[\s*\]\s*\)\s*\.push\(\s*/g;
+
+// Bare `undefined` is the one JS-only token serializers emit inside otherwise
+// valid JSON (Apollo for still-streaming fields, nytimes' __preloadedData).
+// The lookbehind/lookahead pin it to a value position, so a string containing
+// the word is left alone.
+const BARE_UNDEFINED_RE = /(?<=[:,[])\s*undefined\s*(?=[,}\]])/g;
+
+/**
+ * JSON.parse a literal, healing bare `undefined` values to null when a
+ * strict parse fails. Returns parsed:undefined when the literal is not JSON
+ * even after healing.
+ * @param {string} literal
+ * @returns {{ parsed: unknown, healed: number }}
+ */
+function parseJsonHealingUndefined(literal) {
+  try {
+    return { parsed: JSON.parse(literal), healed: 0 };
+  } catch {
+    const healed = (literal.match(BARE_UNDEFINED_RE) || []).length;
+    if (healed === 0) return { parsed: undefined, healed: 0 };
+    try {
+      return { parsed: JSON.parse(literal.replace(BARE_UNDEFINED_RE, 'null')), healed };
+    } catch {
+      return { parsed: undefined, healed: 0 };
+    }
+  }
+}
 
 /**
  * Read an HTML attribute out of a raw tag's attribute string.
@@ -219,11 +250,9 @@ export function extractApolloTransport(html) {
     const literal = readBracketedLiteral(html, APOLLO_TRANSPORT_RE.lastIndex);
     if (!literal) continue;
     APOLLO_TRANSPORT_RE.lastIndex += literal.length;
-    try {
-      pushes.push(JSON.parse(literal.replace(/(?<=[:,[])\s*undefined\s*(?=[,}\]])/g, 'null')));
-    } catch {
-      // Not JSON we can heal — skip this push, keep the rest.
-    }
+    // Not JSON we can heal — skip this push, keep the rest.
+    const { parsed } = parseJsonHealingUndefined(literal);
+    if (parsed !== undefined) pushes.push(parsed);
   }
   return pushes;
 }
@@ -313,12 +342,12 @@ export function extractEmbeddedState(rawHtml) {
     const valueStart = assignment.index + assignment[0].length;
     const literal = readBracketedLiteral(html, valueStart);
     let parsed;
+    let healed = 0;
     if (literal !== null) {
-      try {
-        parsed = JSON.parse(literal);
-      } catch {
-        parsed = undefined;
-      }
+      // nytimes.com's __preloadedData is JSON except for bare `undefined`
+      // values (81 of them on the front page, 2026-09-04) — the same shape
+      // the Apollo transport heals, so heal it the same way.
+      ({ parsed, healed } = parseJsonHealingUndefined(literal));
     }
 
     if (parsed === undefined) {
@@ -341,7 +370,9 @@ export function extractEmbeddedState(rawHtml) {
     }
 
     data[name] = parsed;
-    found.push({ name, variable, bytes: serializedBytes(parsed) });
+    const entry = { name, variable, bytes: serializedBytes(parsed) };
+    if (healed > 0) entry.note = `${healed} bare undefined value(s) read as null`;
+    found.push(entry);
   }
 
   if (jsonScripts.length > 0) {

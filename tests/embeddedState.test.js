@@ -157,7 +157,8 @@ describe('the shared assignment reader', () => {
   for (const [variable, name] of [
     ['__APOLLO_STATE__', 'apollo_state'],
     ['__INITIAL_STATE__', 'initial_state'],
-    ['__PRELOADED_STATE__', 'preloaded_state']
+    ['__PRELOADED_STATE__', 'preloaded_state'],
+    ['__preloadedData', 'preloaded_data']
   ]) {
     test(`${variable} is read into "${name}"`, () => {
       const { data, found } = extractEmbeddedState(wrap(`window.${variable} = {"a":{"b":1}};`));
@@ -165,6 +166,15 @@ describe('the shared assignment reader', () => {
       assert.equal(byName(found, name).variable, variable);
     });
   }
+
+  test('bare undefined values are read as null and counted (nytimes __preloadedData)', () => {
+    const { data, found, warnings } = extractEmbeddedState(
+      wrap('window.__preloadedData = {"loaderData":{"assets":undefined,"list":[undefined,1],"note":"undefined stays in a string"}};')
+    );
+    assert.deepEqual(data.preloaded_data, { loaderData: { assets: null, list: [null, 1], note: 'undefined stays in a string' } });
+    assert.equal(byName(found, 'preloaded_data').note, '2 bare undefined value(s) read as null');
+    assert.equal(warnings.length, 0);
+  });
 
   test('a self. or bare prefix is read the same way', () => {
     assert.deepEqual(extractEmbeddedState(wrap('self.__INITIAL_STATE__={"a":1}')).data.initial_state, { a: 1 });

@@ -34,8 +34,10 @@ describe('hacker-news-front-page — score normalisation', () => {
     assert.equal(data.stories.length, 2);
     assert.equal(data.stories[0].score, '1');
     assert.equal(data.stories[1].score, '3');
-    assert.equal(data.stories[0].comments, 'discuss');
-    assert.equal(data.stories[1].comments, '2 comments');
+    // "discuss" is Hacker News for no comments yet; the label is a count now,
+    // the same shape as score (R15, 2026-09-04).
+    assert.equal(data.stories[0].comments, '0');
+    assert.equal(data.stories[1].comments, '2');
   });
 
   test('a story with no score element (job post) reports null', async () => {
