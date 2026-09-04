@@ -26,6 +26,8 @@ export class BodyTooLargeError extends Error {
  * @param {Uint8Array} bytes
  * @returns {string}
  */
+export const META_CHARSET_SNIFF_BYTES = 8192;
+
 export function detectCharset(response, bytes) {
   const contentType = response.headers?.get?.('content-type') || '';
   const headerMatch = /charset=["']?([\w-]+)/i.exec(contentType);
@@ -33,10 +35,14 @@ export function detectCharset(response, bytes) {
     return headerMatch[1].trim().toLowerCase();
   }
 
-  // <meta charset> tags must appear within the first 1024 bytes per the
-  // HTML5 spec's prescan algorithm; ASCII-range bytes decode identically
-  // under latin1 regardless of the document's real encoding.
-  const sniffLength = Math.min(bytes.byteLength, 1024);
+  // The HTML5 prescan algorithm requires a <meta charset> within the first
+  // 1024 bytes, but real pages break the rule: vector.co.jp/magazine/softnews
+  // (Shift_JIS, no charset in the Content-Type header) declares it at byte
+  // 1293, behind a comment block, and every browser still decodes it
+  // correctly. Sniff a full 8 KB, which covers every <head> seen in the
+  // wild without decoding the whole body twice. ASCII-range bytes decode
+  // identically under latin1 regardless of the document's real encoding.
+  const sniffLength = Math.min(bytes.byteLength, META_CHARSET_SNIFF_BYTES);
   const sniffText = new TextDecoder('latin1').decode(bytes.subarray(0, sniffLength));
   const metaMatch =
     /<meta[^>]+charset=["']?([\w-]+)/i.exec(sniffText) ||

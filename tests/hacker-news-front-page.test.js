@@ -45,3 +45,17 @@ describe('hacker-news-front-page — score normalisation', () => {
     assert.equal(data.stories[0].score, null);
   });
 });
+
+describe('hacker-news-front-page — text posts (R17, 2026-09-04)', () => {
+  test('a relative item?id= story href is resolved to an absolute news.ycombinator.com url', async () => {
+    const html = `
+  <tr class="athing" id="49550479">
+    <td class="title"><span class="titleline"><a href="item?id=49550479">Show HN: A text post</a></span></td>
+  </tr>
+  <tr><td class="subtext"><span class="score">16 points</span> by <a class="hnuser">someone</a>
+    <span class="age"><a href="item?id=49550479">21 hours ago</a></span> | <a href="item?id=49550479">1 comment</a></td></tr>`;
+    const data = await run(html);
+    assert.equal(data.stories[0].url, 'https://news.ycombinator.com/item?id=49550479');
+    assert.equal(data.stories[0].site, null);
+  });
+});

@@ -270,6 +270,19 @@ function amazonByline($) {
   // continues into "(Author) Format: Hardcover".
   if (/^by\s/i.test(raw)) return contributor || tidy(raw.replace(/^by\s+/i, '').split('(')[0]);
 
+  // Every other marketplace phrases the book byline in its own language —
+  // "Engelska utgåvan av George Orwell (Författare)", "Wydanie: Angielski
+  // George Orwell (Autor)", "Édition en Anglais de George Orwell (Auteur)" —
+  // and none starts with "by", so the chrome came back whole on amazon.se,
+  // .pl, .com.be and .com.tr (R17, 2026-09-04). The author's own link
+  // carries the bare name on every marketplace.
+  const authorLink = tidy($('#bylineInfo .author a, #bylineInfo a.contributorNameID').first().text());
+  if (authorLink && /\(/.test(raw)) return authorLink;
+
+  // "Marke: Sony", "Marca: Sony", "Marque : Sony" — a localised brand label.
+  const labelled = raw.match(/^[\p{L}\s]{2,20}?\s?:\s*(.+)$/u);
+  if (labelled && !/\(/.test(raw)) return tidy(labelled[1]);
+
   return raw;
 }
 
@@ -356,7 +369,7 @@ function amazonPrice($) {
  */
 function amazonCurrency($, price) {
   if (!price) return null;
-  const code = price.match(/(USD|EUR|GBP|INR|JPY|CAD|AUD|MXN|BRL|SGD|AED|SAR|PLN|TRY)(?![A-Z])/);
+  const code = price.match(/(USD|EUR|GBP|INR|JPY|CAD|AUD|MXN|BRL|SGD|AED|SAR|EGP|PLN|TRY|SEK)(?![A-Z])/);
   if (code) return code[1];
   if (price.includes('₹')) return 'INR';
   if (price.includes('€')) return 'EUR';
@@ -364,9 +377,16 @@ function amazonCurrency($, price) {
   if (price.includes('¥') || price.includes('￥')) return 'JPY';
   if (price.includes('R$')) return 'BRL';
   if (price.includes('zł')) return 'PLN';
-  if (price.includes('₺')) return 'TRY';
+  // amazon.com.tr writes "460,67TL" (R17, 2026-09-04); the lira sign is rarer.
+  if (price.includes('₺') || /(?<![A-Za-z])TL(?![A-Za-z])/.test(price)) return 'TRY';
+  // Arabic-script marketplaces: dirham, Egyptian pound, riyal.
+  if (/د\.?إ/.test(price)) return 'AED';
+  if (/ج\.?م/.test(price)) return 'EGP';
+  if (/ر\.?س|﷼/.test(price)) return 'SAR';
+  const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
+  // "114,30kr" on amazon.se — the only Amazon marketplace priced in kronor.
+  if (/(?<![A-Za-z])kr(?![A-Za-z])/i.test(price)) return /\.se$/.test(host) ? 'SEK' : null;
   if (price.includes('$')) {
-    const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
     if (/\.ca$/.test(host)) return 'CAD';
     if (/\.com\.au$/.test(host)) return 'AUD';
     if (/\.com\.mx$/.test(host)) return 'MXN';
@@ -374,6 +394,15 @@ function amazonCurrency($, price) {
     return 'USD';
   }
   return null;
+}
+
+function hnAbsoluteUrl(href) {
+  if (!href) return href;
+  try {
+    return new URL(href, 'https://news.ycombinator.com/').href;
+  } catch {
+    return href;
+  }
 }
 
 function hnCommentCount(label) {
@@ -858,7 +887,9 @@ export const TEMPLATES = [
         stories.push({
           id: $row.attr('id'),
           title: $titleLink.text().trim(),
-          url: safeHref($titleLink.attr('href')),
+          // Text posts (Ask HN, Show HN without a link) carry a relative
+          // "item?id=…" href; resolve it so every story url is absolute.
+          url: safeHref(hnAbsoluteUrl($titleLink.attr('href'))),
           site: $row.find('.sitebit a').text().trim() || null,
           // "1 point" on a fresh story and "3 points" on the rest — strip both.
           score: $score.text().replace(/\s*points?$/, '').trim() || null,

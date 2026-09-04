@@ -62,8 +62,13 @@ describe('detectCharset', () => {
     assert.equal(detectCharset(headersOnly(), bytes), 'iso-8859-1');
   });
 
-  test('ignores a <meta charset> that appears past the 1024-byte prescan window', () => {
-    const bytes = utf8('<!-- ' + 'x'.repeat(1100) + ' --><meta charset="gbk">');
+  test('honours a <meta charset> past the 1024-byte prescan window (vector.co.jp declares Shift_JIS at byte 1293)', () => {
+    const bytes = utf8('<!-- ' + 'x'.repeat(1100) + ' --><meta charset="shift_jis">');
+    assert.equal(detectCharset(headersOnly(), bytes), 'shift_jis');
+  });
+
+  test('ignores a <meta charset> that appears past the 8 KB sniff window', () => {
+    const bytes = utf8('<!-- ' + 'x'.repeat(9000) + ' --><meta charset="gbk">');
     assert.equal(detectCharset(headersOnly(), bytes), 'utf-8');
   });
 

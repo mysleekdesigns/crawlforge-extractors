@@ -23,6 +23,10 @@ const STATE_VARIABLES = [
   { name: 'nuxt', variable: '__NUXT__' },
   { name: 'apollo_state', variable: '__APOLLO_STATE__' },
   { name: 'initial_state', variable: '__INITIAL_STATE__' },
+  // tumblr.com spells it with three underscores and assigns it in bracket
+  // notation: window['___INITIAL_STATE___'] = {...} (R17, 2026-09-04). Same
+  // key as the two-underscore form; the first one found on a page wins.
+  { name: 'initial_state', variable: '___INITIAL_STATE___' },
   { name: 'preloaded_state', variable: '__PRELOADED_STATE__' },
   // nytimes.com ships its whole front page as window.__preloadedData; with
   // only the four names above, a 1.1 MB page surfaced nothing but its
@@ -334,8 +338,13 @@ export function extractEmbeddedState(rawHtml) {
   }
 
   for (const { name, variable } of STATE_VARIABLES) {
+    if (data[name] !== undefined) continue;
+    // Dot or bracket notation on window/self/globalThis, or a bare/var
+    // assignment; \b keeps MY__INITIAL_STATE__ from matching __INITIAL_STATE__.
     const assignment = html.match(
-      new RegExp(`(?:window|self|globalThis)?\\.?\\b${variable}\\s*=\\s*`)
+      new RegExp(
+        `(?:(?:window|self|globalThis)\\s*\\[\\s*(['"])${variable}\\1\\s*\\]|(?:(?:window|self|globalThis)\\.)?\\b${variable})\\s*=\\s*`
+      )
     );
     if (!assignment) continue;
 
