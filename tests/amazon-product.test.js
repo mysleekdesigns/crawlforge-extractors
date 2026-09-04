@@ -316,3 +316,45 @@ describe('amazon-product price comes from the buy box, never from another produc
     assert.equal((await run(html)).price, 'from $46.88');
   });
 });
+
+describe('amazon-product byline on non-English marketplaces (R17, 2026-09-04)', () => {
+  test('a Swedish book byline yields the author link, not the localised chrome', async () => {
+    const html = `<div id="bylineInfo">Engelska utgåvan av
+        <span class="author notFaded"><a class="a-link-normal">George Orwell</a>
+        <span class="contribution">(Författare)</span></span>, Dolen Perkins-Valdez (Introduktion) &amp; 0 mer Format: Pocketbok</div>`;
+    assert.equal((await run(html)).brand, 'George Orwell');
+  });
+
+  test('a Polish book byline yields the author link', async () => {
+    const html = `<div id="bylineInfo">Wydanie: Angielski
+        <span class="author"><a class="a-link-normal">George Orwell</a> <span class="contribution">(Autor)</span></span> Format: Miękka oprawa</div>`;
+    assert.equal((await run(html)).brand, 'George Orwell');
+  });
+
+  test('a localised brand label is stripped', async () => {
+    assert.equal((await run('<a id="bylineInfo">Marke: Sony</a>')).brand, 'Sony');
+    assert.equal((await run('<a id="bylineInfo">Marque : Sony</a>')).brand, 'Sony');
+  });
+});
+
+describe('amazon-product currency for kronor and lira (R17, 2026-09-04)', () => {
+  const page = (host, price) =>
+    `<link rel="canonical" href="https://${host}/dp/B000000000"><span id="productTitle">T</span>` +
+    `<div id="corePriceDisplay_desktop_feature_div"><span class="a-price"><span class="a-offscreen">${price}</span></span></div>`;
+
+  test('"114,30kr" on amazon.se is SEK', async () => {
+    const data = await run(page('www.amazon.se', '114,30kr'));
+    assert.equal(data.price, '114,30kr');
+    assert.equal(data.currency, 'SEK');
+  });
+
+  test('"460,67TL" on amazon.com.tr is TRY', async () => {
+    const data = await run(page('www.amazon.com.tr', '460,67TL'));
+    assert.equal(data.currency, 'TRY');
+  });
+
+  test('kronor off amazon.se stay unattributed rather than guessed', async () => {
+    const data = await run(page('www.amazon.com', '99kr'));
+    assert.equal(data.currency, null);
+  });
+});

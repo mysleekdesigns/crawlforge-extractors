@@ -199,6 +199,26 @@ describe('the shared assignment reader', () => {
     const { found } = extractEmbeddedState(wrap('window.MY__INITIAL_STATE__={"a":1}'));
     assert.equal(found.length, 0);
   });
+
+  test('bracket notation is read (tumblr window[\'___INITIAL_STATE___\'])', () => {
+    const { data, found } = extractEmbeddedState(
+      wrap('window[\'___INITIAL_STATE___\'] = {"queries":{"a":1}};')
+    );
+    assert.deepEqual(data.initial_state, { queries: { a: 1 } });
+    assert.equal(byName(found, 'initial_state').variable, '___INITIAL_STATE___');
+
+    const dq = extractEmbeddedState(wrap('window["__INITIAL_STATE__"]={"b":2}'));
+    assert.deepEqual(dq.data.initial_state, { b: 2 });
+    assert.equal(byName(dq.found, 'initial_state').variable, '__INITIAL_STATE__');
+  });
+
+  test('the two-underscore form wins when a page carries both spellings', () => {
+    const { data, found } = extractEmbeddedState(
+      wrap('window.__INITIAL_STATE__={"two":1}; window[\'___INITIAL_STATE___\']={"three":1};')
+    );
+    assert.deepEqual(data.initial_state, { two: 1 });
+    assert.equal(found.filter((f) => f.name === 'initial_state').length, 1);
+  });
 });
 
 describe('json script blocks', () => {
