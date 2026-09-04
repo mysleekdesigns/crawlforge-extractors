@@ -281,6 +281,29 @@ function amazonByline($) {
  * off the price itself: an explicit code ("52,02USD"), else the symbol. A
  * bare "$" belongs to several marketplaces, told apart by the canonical host.
  */
+/**
+ * The visible price. Amazon renders it twice: an offscreen string for screen
+ * readers and a whole/decimal/fraction triplet for the eye. On amazon.com.au
+ * (observed 2026-09-04) the a-price-decimal span is EMPTY, so the offscreen
+ * string reads "$1105" for A$11.05 — whole "11" + fraction "05" with no
+ * separator, a price 100× too high that every downstream guard accepts. When
+ * the offscreen digits are exactly whole+fraction and nothing separates the
+ * fraction, the separator is put back: "." unless the marketplace writes its
+ * decimals with a comma.
+ */
+function amazonPrice($) {
+  const offscreen = text($, '.a-price .a-offscreen');
+  if (!offscreen) return null;
+  const whole = (text($, '.a-price .a-price-whole') || '').replace(/\D/g, '');
+  const fraction = (text($, '.a-price .a-price-fraction') || '').replace(/\D/g, '');
+  if (!whole || !fraction) return offscreen;
+  if (offscreen.replace(/\D/g, '') !== whole + fraction) return offscreen;
+  if (new RegExp(`[.,]${fraction}(?!\\d)`).test(offscreen)) return offscreen;
+  const host = (attr($, 'link[rel="canonical"]', 'href') || '').match(/^https?:\/\/([^/]+)/)?.[1] || '';
+  const separator = /\.(de|fr|es|it|nl|se|pl|com\.br|com\.tr|com\.be)$/.test(host) ? ',' : '.';
+  return offscreen.replace(new RegExp(`(\\d)(${fraction})(?!\\d)`), `$1${separator}$2`);
+}
+
 function amazonCurrency($, price) {
   if (!price) return null;
   const code = price.match(/(USD|EUR|GBP|INR|JPY|CAD|AUD|MXN|BRL|SGD|AED|SAR|PLN|TRY)(?![A-Z])/);
@@ -301,6 +324,14 @@ function amazonCurrency($, price) {
     return 'USD';
   }
   return null;
+}
+
+function hnCommentCount(label) {
+  const value = (label || '').trim();
+  if (!value) return null;
+  if (/^discuss$/i.test(value)) return '0';
+  const match = value.match(/^(\d+)\s*comments?$/i);
+  return match ? match[1] : value;
 }
 
 function amazonRating(value) {
@@ -571,7 +602,10 @@ export const TEMPLATES = [
     id: 'amazon-product',
     name: 'Amazon Product',
     description: 'Scrape an Amazon product page for title, price, rating, reviews, ASIN, and description.',
-    targetPattern: /amazon\.(com|co\.uk|de|fr|jp|ca|com\.au)/i,
+    // Every marketplace the extractor handles. "jp" alone never matched
+    // amazon.co.jp, and .es/.in/.it worked by explicit id while template:"auto"
+    // refused them (R15, 2026-09-04).
+    targetPattern: /amazon\.(com|co\.uk|co\.jp|de|fr|es|it|nl|se|pl|ca|in|sg|ae|sa|eg|com\.au|com\.br|com\.mx|com\.be|com\.tr)/i,
     extract($) {
       // Amazon serves its robot check as HTTP 200: a "Continue shopping" page
       // whose only form posts to /errors/validateCaptcha. Every selector below
@@ -591,7 +625,7 @@ export const TEMPLATES = [
         .map(fullSizeImage)
         .filter(Boolean);
 
-      const price = text($, '.a-price .a-offscreen') || text($, '#priceblock_ourprice') || text($, '#priceblock_dealprice');
+      const price = amazonPrice($) || text($, '#priceblock_ourprice') || text($, '#priceblock_dealprice');
 
       return {
         title: tidy(text($, '#productTitle')),
@@ -769,8 +803,10 @@ export const TEMPLATES = [
           // ".age a" wraps the relative age string ("3 hours ago"); its href is the item permalink.
           posted: $subtext.find('.age a').text().trim() || null,
           // The comments link is also an item?id= link, so exclude the age anchor.
-          // Job posts have no comments link at all -> null.
-          comments: $subtext.find('a[href*="item"]').not('.age a').last().text().trim() || null
+          // "1053 comments", "1 comment" or "discuss" (none yet) become one
+          // shape, a bare count, like score above. Job posts have no comments
+          // link at all -> null.
+          comments: hnCommentCount($subtext.find('a[href*="item"]').not('.age a').last().text())
         });
       });
       return { stories: stories.slice(0, 30), scraped_at: new Date().toISOString() };

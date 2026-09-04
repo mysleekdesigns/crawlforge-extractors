@@ -71,6 +71,14 @@ describe('TemplateRegistry.detect', () => {
     assert.equal(registry.detect(undefined), null);
   });
 
+  test('every Amazon marketplace the extractor handles is auto-detected', () => {
+    // "jp" alone never matched amazon.co.jp, and .es/.in/.it worked by explicit
+    // id while template:"auto" refused them (R15, 2026-09-04).
+    for (const host of ['www.amazon.co.jp', 'www.amazon.es', 'www.amazon.in', 'www.amazon.it', 'www.amazon.com.br', 'www.amazon.com.au']) {
+      assert.equal(registry.detect(`https://${host}/dp/B000000000`)?.id, 'amazon-product', `detect() missed ${host}`);
+    }
+  });
+
   test('a host-anchored pattern beats a path-only one', () => {
     // Both patterns match: amazon-product names the host, shopify-product only
     // knows the /products/ path shape. Without the ranking this returns
