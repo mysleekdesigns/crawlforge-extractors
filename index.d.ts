@@ -324,3 +324,44 @@ export declare function documentVerdict(
 
 /** A document with this much text or less and an error title is a placeholder. */
 export declare const SOFT_ERROR_MAX_CHARS: number;
+
+/** One scoreable piece of a page's markdown: a sentence, a table row or a fenced code block. */
+export interface HighlightUnit {
+  /** Verbatim from the markdown: `markdown.slice(offset, offset + length) === text`. */
+  text: string;
+  kind: 'sentence' | 'table_row' | 'code_block';
+  /** JS string index into the markdown segmentUnits was given — not a byte offset. */
+  offset: number;
+  length: number;
+  /** The nearest heading above the unit, without its `#` marks; null before the first heading. */
+  heading: string | null;
+}
+
+export interface RankedHighlightUnit extends HighlightUnit {
+  /** BM25 with the phrase boost applied and the heading's terms counted at half weight, rounded to 3 decimals; always above `minScore`. */
+  score: number;
+}
+
+/**
+ * Cut the markdown a scrape returned into sentences, table rows and fenced
+ * code blocks, each with its offset into that same string. Headings are not
+ * units; they label the units that follow. List and quote markers are
+ * skipped by moving the offset, never by rewriting the text. The sentence
+ * splitter carries the MCP server's rules: 。！？ and the danda split on a
+ * zero-width boundary, and an ASCII period does not split after an
+ * abbreviation, a word with internal periods, a decimal or an initial.
+ */
+export declare function segmentUnits(markdown: string): HighlightUnit[];
+
+/**
+ * The units that answer a query, best first: BM25 over the units as the
+ * corpus, each unit inheriting its heading's terms at half weight, ×1.5 when
+ * a unit contains the whole query. Units scoring at or below `minScore` (default 0: no
+ * term in common) are dropped; at most `maxUnits` (default 10, clamped to at
+ * least 1) come back, ties broken by offset. The input is not modified.
+ */
+export declare function rankUnits(
+  units: HighlightUnit[],
+  query: string,
+  options?: { maxUnits?: number; minScore?: number }
+): RankedHighlightUnit[];
