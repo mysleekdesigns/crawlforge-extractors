@@ -208,6 +208,35 @@ const verdict = documentVerdict(
 `detectChallengePage` is the vendor check alone. Both are pure: the caller
 keeps or drops the content, and decides what to try next.
 
+### Finding the units that match a query
+
+`segmentUnits` cuts the markdown a scrape returned into sentences, table rows
+and fenced code blocks; `rankUnits` scores them against a query with BM25 and
+returns the best few verbatim. It is how a caller gets the one table row that
+answers "enterprise price per month" without paying to read the whole page,
+and without a model paraphrasing it — nothing here can say something the page
+does not.
+
+```js
+import { segmentUnits, rankUnits } from 'crawlforge-extractors';
+
+const units = segmentUnits(markdown);
+const best = rankUnits(units, 'enterprise price per month', { maxUnits: 5 });
+// [{ text: 'Enterprise is priced at $499 per month, billed annually, and includes a dedicated success engineer.',
+//    kind: 'sentence', offset: 815, length: 99, heading: 'Enterprise', score: 6.612 },
+//  { text: '| Price per month | $29 | $99 | $499 |',
+//    kind: 'table_row', offset: 257, length: 38, heading: 'Compare plans', score: 5.809 }, …]
+```
+
+Offsets are JS string indexes into the exact string passed in, and every unit
+keeps `markdown.slice(offset, offset + length) === text`: trimming and list
+markers move the offset, nothing rewrites the text. Headings are not units;
+each unit carries the heading above it. The sentence splitter shares the MCP
+server's terminator rules — `。！？` and the danda split on a zero-width
+boundary, and an ASCII period does not split after `Dr.`, `e.g.`, `Node.js`
+or `3.14`. A CJK query matches by character bigrams, so no segmenter is
+needed.
+
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·
