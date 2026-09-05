@@ -273,3 +273,54 @@ export declare function shopifyProductFromJsonLd(
 ): { found: true; data: ShopifyJsonLdProduct } | { found: false; reason: string };
 
 export default TemplateRegistry;
+
+/** The bot-defence vendor whose interstitial a document is, and what gave it away. */
+export interface ChallengeVerdict {
+  vendor: 'cloudflare' | 'amazon' | 'datadome' | 'perimeterx' | 'akamai' | 'vercel';
+  evidence: string;
+}
+
+/**
+ * Recognise a bot-wall interstitial served as a page (HTTP 200, a title, some
+ * prose and a challenge script). A title match is definitive; a script or
+ * form marker is definitive only on a short page, because a real page can
+ * legitimately embed a Turnstile widget.
+ */
+export declare function detectChallengePage(page: {
+  title?: string;
+  html?: string;
+  text?: string;
+}): ChallengeVerdict | null;
+
+export interface DocumentVerdict {
+  success: boolean;
+  /** The navigation's HTTP status when the caller had one, else null. */
+  status: number | null;
+  /** Present on every failure: what the document is and what to do. */
+  error?: string;
+  /** Present when the failure is a challenge wall. */
+  blocked?: ChallengeVerdict;
+}
+
+/**
+ * What a fetched document is: the page, a challenge wall, an HTTP error page,
+ * an empty shell, or a short error-titled placeholder. The defaults describe
+ * a stealth-browser caller: a browser `rendered` the document, `fetcher`
+ * names it in the messages, `waitedMs` is the extra render wait it gave an
+ * empty document, and the failure result still carries the content
+ * (`contentReturned`). A plain fetch passes `rendered: false` and
+ * `contentReturned: false`.
+ */
+export declare function documentVerdict(
+  scraped: { url?: string; title?: string; text?: string; html?: string; status?: number | null },
+  options?: {
+    waitedMs?: number;
+    allowEmpty?: boolean;
+    fetcher?: string;
+    rendered?: boolean;
+    contentReturned?: boolean;
+  }
+): DocumentVerdict;
+
+/** A document with this much text or less and an error title is a placeholder. */
+export declare const SOFT_ERROR_MAX_CHARS: number;

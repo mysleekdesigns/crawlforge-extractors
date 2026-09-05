@@ -186,6 +186,28 @@ JSON-LD carries no per-variant stock count, compare-at price or option names,
 so those fields are null. Pass the page URL after redirects: a `/collections/`
 URL is reported in `reason` as a retired handle.
 
+### Recognising a blocked page
+
+`documentVerdict` says what a fetched document is: the page, a bot-wall
+interstitial (Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel), an
+HTTP error page, an empty shell, or a short error-titled placeholder. A wall
+arrives as HTTP 200 with a title and prose of its own, so a fetch that only
+checks the status reports it as a success — producthunt.com came back
+`success: true, title: "Just a moment..."` for three regression rounds.
+
+```js
+import { documentVerdict } from 'crawlforge-extractors';
+
+const verdict = documentVerdict(
+  { url: response.url, status: response.status, title, text, html },
+  { fetcher: 'a plain fetch', rendered: false, contentReturned: false }
+);
+// { success: false, status: 200, blocked: { vendor: 'cloudflare', evidence: 'title "Just a moment..."' }, error: '…' }
+```
+
+`detectChallengePage` is the vendor check alone. Both are pure: the caller
+keeps or drops the content, and decides what to try next.
+
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·

@@ -31,3 +31,5 @@ export { extractEmbeddedState } from './src/embeddedState.js';
 export { parseJsonPath, selectJsonPath } from './src/jsonPath.js';
 
 export { shopifyProductFromJsonLd } from './src/shopifyJsonLd.js';
+
+export { detectChallengePage, documentVerdict, SOFT_ERROR_MAX_CHARS } from './src/blockedPage.js';
