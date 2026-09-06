@@ -365,3 +365,60 @@ export declare function rankUnits(
   query: string,
   options?: { maxUnits?: number; minScore?: number }
 ): RankedHighlightUnit[];
+
+/** The four entity classes `redactPii` finds with regex alone, no model. */
+export declare const REGEX_ENTITIES: readonly ['EMAIL', 'PHONE', 'FINANCIAL', 'SECRET'];
+
+/**
+ * The entity classes regex cannot find. `redactPii` never handles these — a
+ * caller wanting them routes the text through its own model pass and is
+ * charged separately for it.
+ */
+export declare const MODEL_ONLY_ENTITIES: readonly ['PERSON', 'LOCATION'];
+
+/** The style `redactPii` uses when the caller names none: `<EMAIL>` and friends. */
+export declare const DEFAULT_REPLACE_STYLE: 'tag';
+
+/** What a redaction pass changed: a count per entity class, and the total. */
+export interface PiiRedaction {
+  /** Per-class replacement counts. A class with no hits is omitted, not zero. */
+  entities: Record<string, number>;
+  /** Total replacements made across every class. */
+  count: number;
+}
+
+/**
+ * Replace the personal and secret data in a string, in one pass, with no model.
+ *
+ * Detectors contribute spans over the original text and the string is rebuilt
+ * once at the end, so overlaps are resolved a single time and nothing is
+ * counted twice. Accept order is SECRET, EMAIL, FINANCIAL, PHONE: a labelled
+ * credential beats whatever its value looks like, and a card number can never
+ * afterwards be re-read as a phone number.
+ *
+ * Precision is preferred to recall throughout — this runs on arbitrary page
+ * text, where a false positive silently destroys content the caller paid to
+ * scrape. Card numbers must pass Luhn and IBANs mod-97; prices, dates,
+ * version numbers and long ids are left alone.
+ *
+ * Markdown-safe. `scrape` returns markdown by default and turndown escapes it,
+ * writing `_` as `\_` and a line-leading `-` as `\-`, so the EMAIL local part
+ * and the `api_key` SECRET label match through that escape: an escaped address
+ * is redacted as ONE span (`simon\_lacey@example.com` becomes `<EMAIL>`, never
+ * `simon\<EMAIL>` with a count of 1 beside the surviving name). The escape is
+ * tolerated, never removed — text outside a replaced span comes back
+ * byte-identical, offsets intact. No other detector needs the tolerance.
+ *
+ * `entities` names are upper-cased and intersected with `REGEX_ENTITIES`.
+ * Passing `undefined`, a non-array or an EMPTY array means all four, because a
+ * missing selection should fail towards more redaction — but an array that
+ * leaves nothing behind (`['PERSON']`) redacts NOTHING rather than falling
+ * back to all. An unknown `replaceStyle` is treated as `'tag'`. SECRET keeps
+ * its label and replaces only the value in every style, `'remove'` included.
+ *
+ * Never throws: a non-string `text` comes back unchanged with a zero count.
+ */
+export declare function redactPii(
+  text: string,
+  options?: { entities?: string[]; replaceStyle?: 'tag' | 'mask' | 'remove' }
+): { text: string; redaction: PiiRedaction };

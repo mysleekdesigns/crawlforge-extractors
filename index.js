@@ -35,3 +35,5 @@ export { shopifyProductFromJsonLd } from './src/shopifyJsonLd.js';
 export { detectChallengePage, documentVerdict, SOFT_ERROR_MAX_CHARS } from './src/blockedPage.js';
 
 export { segmentUnits, rankUnits } from './src/highlights.js';
+
+export { redactPii, REGEX_ENTITIES, MODEL_ONLY_ENTITIES, DEFAULT_REPLACE_STYLE } from './src/pii.js';
