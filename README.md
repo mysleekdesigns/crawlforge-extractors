@@ -190,7 +190,9 @@ URL is reported in `reason` as a retired handle.
 
 `documentVerdict` says what a fetched document is: the page, a bot-wall
 interstitial (Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel), an
-HTTP error page, an empty shell, or a short error-titled placeholder. A wall
+HTTP error page, an empty shell, a short error-titled placeholder, or a
+client-rendered app's own short error fallback under a normal title (quora.com's
+"Something went wrong. Wait a moment and try again."). A wall
 arrives as HTTP 200 with a title and prose of its own, so a fetch that only
 checks the status reports it as a success — producthunt.com came back
 `success: true, title: "Just a moment..."` for three regression rounds.

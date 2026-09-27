@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { load } from 'cheerio';
 
-import { detectChallengePage, documentVerdict, SOFT_ERROR_MAX_CHARS } from '../src/blockedPage.js';
+import { detectChallengePage, documentVerdict, SOFT_ERROR_MAX_CHARS, ERROR_TEXT_MAX_CHARS } from '../src/blockedPage.js';
 
 function page(name, url = 'https://example.com/') {
   const html = readFileSync(new URL(`./fixtures/blocked/${name}.html`, import.meta.url), 'utf8');
@@ -116,6 +116,38 @@ describe('documentVerdict', () => {
       const short = documentVerdict({ url: 'https://example.com/', status: 200, title, text: 'Please try again later.' });
       assert.equal(short.success, false, title);
     }
+  });
+
+  test('a short app error message under a normal title is a soft block (quora.com, 2026-09-26)', () => {
+    const quora = {
+      url: 'https://www.quora.com/What-is-the-best-way-to-learn-programming',
+      status: 200,
+      title: 'What is the best way to learn programming? - Quora',
+      text: 'Something went wrong. Wait a moment and try again.Try again'
+    };
+    const plain = documentVerdict(quora, { fetcher: 'a plain fetch', rendered: false });
+    assert.equal(plain.success, false);
+    assert.equal(plain.status, 200);
+    assert.match(plain.error, /rendered an application error message \("Something went wrong\. Wait a moment/);
+    assert.match(plain.error, /under the title "What is the best way to learn programming\? - Quora"/);
+    assert.match(plain.error, /only a browser renders it\.$/);
+    assert.match(documentVerdict(quora).error, /longer wait_for/);
+
+    for (const text of [
+      'Application error: a client-side exception has occurred (see the browser console for more information).',
+      'Oops! Please reload the page.',
+      '  An unexpected error has occurred.\n Try again  '
+    ]) {
+      assert.equal(documentVerdict({ url: 'https://example.com/', status: 200, title: 'Example', text }).success, false, text);
+    }
+  });
+
+  test('a page that starts with an error phrase but carries real text is a page', () => {
+    const longer = 'Something went wrong with my build, and here is how I fixed it. '.repeat(4);
+    assert.ok(longer.length >= ERROR_TEXT_MAX_CHARS);
+    assert.deepEqual(documentVerdict({ url: 'https://example.com/post', status: 200, title: 'Fixing builds', text: longer }), { success: true, status: 200 });
+    // The phrase has to open the text; a short page that mentions it later is a page.
+    assert.deepEqual(documentVerdict({ url: 'https://example.com/', status: 200, title: 'Status', text: 'All systems normal. Nothing went wrong today.' }), { success: true, status: 200 });
   });
 
   test('a long article whose title happens to be an error word is a page', () => {

@@ -88,6 +88,15 @@ export function detectChallengePage({ title = '', html = '', text = '' } = {}) {
 const ERROR_TITLE = /^(?:(?:\d{3}\s*[-–—|:]\s*)?(?:error(?: page)?|access denied|forbidden|(?:page )?not found|service unavailable|internal server error|bad gateway|something went wrong|oops!?[^\n]{0,60}))$/i;
 export const SOFT_ERROR_MAX_CHARS = 1500;
 
+// A client-rendered app that failed shows its own fallback in the body and
+// keeps the page's real title, so the title rule above never sees it:
+// quora.com served "Something went wrong. Wait a moment and try again." under
+// the question's title (2026-09-26), and Next.js prints the last phrase.
+// Only a document this short is judged by its opening words; a longer one
+// that starts the same way is a page about the error.
+const ERROR_TEXT = /^(?:something went wrong|oops[!,.]|an (?:unexpected )?error (?:has )?occurred|application error: a client-side exception has occurred)/i;
+export const ERROR_TEXT_MAX_CHARS = 200;
+
 /**
  * What a fetched document is: the page, a challenge wall, an HTTP error
  * page, an empty shell, or a short error-titled placeholder. The content is
@@ -161,6 +170,19 @@ export function documentVerdict(scraped, { waitedMs = 0, allowEmpty = false, fet
         (rendered
           ? ' — a soft block or an application error. Retry later, or with a longer wait_for if the site paints content after a placeholder.'
           : ' — a soft block or an application error. Retry later; if the site paints content after a placeholder, only a browser renders it.')
+    };
+  }
+
+  const compact = text.replace(/\s+/g, ' ');
+  if (compact.length < ERROR_TEXT_MAX_CHARS && ERROR_TEXT.test(compact)) {
+    return {
+      success: false,
+      status,
+      error:
+        `${url} rendered an application error message ("${compact.slice(0, 80)}") under the title "${title}" instead of the resource` +
+        (rendered
+          ? ' — the page\'s script failed. Retry later, or with a longer wait_for if the site paints content after a placeholder.'
+          : ' — the page is rendered by JavaScript and this is its fallback; only a browser renders it.')
     };
   }
 
