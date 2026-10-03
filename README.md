@@ -252,6 +252,32 @@ boundary, and an ASCII period does not split after `Dr.`, `e.g.`, `Node.js`
 or `3.14`. A CJK query matches by character bigrams, so no segmenter is
 needed.
 
+### Page text and link records
+
+`flattenText` and `extractLinkRecords` are what `extract_text` and
+`extract_links` return on both surfaces, so the same page reads the same
+through the MCP server and the REST API.
+
+```js
+import { load } from 'cheerio';
+import { flattenText, extractLinkRecords } from 'crawlforge-extractors';
+
+const $ = load(html);
+$('script, style, noscript').remove();
+flattenText($);                    // "Hi\nthere" for <h1>Hi</h1><p>there</p>
+flattenText($, $('article'));      // only the matched elements
+extractLinkRecords($, { pageUrl: finalUrl });
+// [{ href: 'https://example.com/about', text: 'About', type: 'internal',
+//    domain: 'example.com', rel: null, original_href: '/about' }, …]
+```
+
+Text is one line per block element, table cells on a row joined by a space.
+Links resolve against `baseUrl`, else the page's `<base href>`, else the page
+URL; `mailto:`, `tel:` and `javascript:` links are `type: "other"`, and only
+`mailto:`/`tel:` keep an href (nothing runnable is returned). Links are
+deduplicated on the URL without fragment or trailing slash; a
+`#fragment`-only href is skipped unless `includeAnchors` is set.
+
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·
