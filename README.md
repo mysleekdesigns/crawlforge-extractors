@@ -291,6 +291,11 @@ deduplicated on the URL without fragment or trailing slash; a
 
 **Government APIs** (`src/connectors/gov.js`). `nhtsa-vin` · `npi-provider`
 
+A template that can run from params instead of a URL lists them in `params`
+(`[{ name, required, description }]`, also in `registry.list()`). A template
+can add `warnings` to its result: `reddit-thread` warns when the URL names a
+different subreddit from the post's.
+
 `shopify-collection` is a list connector: it reads a store's own
 `/collections/<handle>/products.json` and returns every product in the
 collection with the same authoritative price, compare-at price and stock that

@@ -22,8 +22,10 @@ const BLOCK_SELECTOR =
 const SENTINEL = '\uE000';
 
 /**
- * Flatten elements to text, one line per block element. Table cells on a row
- * are joined by a space. Works on a detached clone, so the caller's tree is
+ * Flatten elements to text, one line per block element: a block starts and
+ * ends a line, so inline text just before one is not welded to it (Readability
+ * turns "July 2023<br><br>If you…" into "July 2023<p>If you…</p>", which read
+ * "July 2023If you…", R24 3.1). Table cells on a row are joined by a space. Works on a detached clone, so the caller's tree is
  * untouched. Callers remove `<script>`/`<style>` first: their text is read
  * like any other.
  *
@@ -36,7 +38,7 @@ export function flattenText($, root = $('body')) {
   const $root = root.clone();
   $root.find('br').replaceWith(SENTINEL);
   $root.find('td, th').after(' ');
-  $root.find(BLOCK_SELECTOR).after(SENTINEL);
+  $root.find(BLOCK_SELECTOR).before(SENTINEL).after(SENTINEL);
   return $root
     .toArray()
     .map((el) => $(el).text())

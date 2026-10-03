@@ -72,3 +72,12 @@ test('definition lists, figures, landmarks and captions are blocks too', () => {
   );
   assert.equal(flattenText(load('<table><caption>T</caption><tr><td>a</td></tr></table>')), 'T\na');
 });
+
+test('inline text before a block starts its own line (R24 3.1: "July 2023If you collected")', () => {
+  // What Readability makes of paulgraham.com/greatwork.html's "July 2023<br><br>If you…".
+  assert.equal(
+    flattenText(load('<div><font>July 2023<p>If you collected lists.</p><p>The following recipe.</p></font></div>')),
+    'July 2023\nIf you collected lists.\nThe following recipe.'
+  );
+  assert.equal(flattenText(load('<form><label>Name</label><div>Thanks</div></form>')), 'Name\nThanks');
+});

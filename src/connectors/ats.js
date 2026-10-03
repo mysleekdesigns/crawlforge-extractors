@@ -232,6 +232,11 @@ export const ATS_TEMPLATES = [
       'payload: Stripe\'s 571-job board is 349 KB without them and 4.2 MB with them.',
     targetPattern: /(boards|job-boards|boards-api)\.greenhouse\.io\//i,
 
+    params: [
+      { name: 'company', required: true, description: 'Board token, the path segment in https://job-boards.greenhouse.io/<token>.' },
+      { name: 'content', required: false, description: 'true adds each job\'s description (much larger response).' }
+    ],
+
     /**
      * `company` is Greenhouse's board token — the path segment in
      * https://job-boards.greenhouse.io/<token>, not the company's display name.
@@ -322,6 +327,12 @@ export const ATS_TEMPLATES = [
      */
     crawlDelaySeconds: 1,
 
+    params: [
+      { name: 'company', required: true, description: 'The path segment in https://jobs.lever.co/<company>.' },
+      { name: 'skip', required: false, description: 'Postings to skip, for paging.' },
+      { name: 'limit', required: false, description: 'Postings to return, for paging.' }
+    ],
+
     /** `company` is the path segment in https://jobs.lever.co/<company>. */
     listUrl(params = {}) {
       const company = requireParam(
@@ -403,6 +414,11 @@ export const ATS_TEMPLATES = [
       'because they are most of the payload: OpenAI\'s 767-job board is 5.9 MB with them and ' +
       'a fraction of that without.',
     targetPattern: /(jobs|api)\.ashbyhq\.com\//i,
+
+    params: [
+      { name: 'company', required: true, description: 'Jobs page name, the segment in https://jobs.ashbyhq.com/<name>.' },
+      { name: 'descriptions', required: false, description: 'true keeps each job\'s plain-text description.' }
+    ],
 
     /** `company` is Ashby's jobs page name — the segment in https://jobs.ashbyhq.com/<name>. */
     listUrl(params = {}) {
@@ -495,6 +511,11 @@ export const ATS_TEMPLATES = [
       'documented ?details=true parameter.',
     targetPattern: /(apply\.workable\.com|www\.workable\.com\/api\/accounts|[\w-]+\.workable\.com\/(jobs|spi))/i,
 
+    params: [
+      { name: 'company', required: true, description: 'Account subdomain, the path segment in https://apply.workable.com/<subdomain>.' },
+      { name: 'details', required: false, description: 'true adds each job\'s description.' }
+    ],
+
     /** `company` is the account subdomain — the first part of the signed-in Workable URL. */
     listUrl(params = {}) {
       const company = requireParam(
@@ -579,6 +600,10 @@ export const ATS_TEMPLATES = [
       'rendered careers page: title, department, location, employment type code, salary band and ' +
       'plain-text description for every open role in one request.',
     targetPattern: /\.recruitee\.com\//i,
+
+    params: [
+      { name: 'company', required: true, description: 'The subdomain in https://<company>.recruitee.com.' }
+    ],
 
     /** `company` is the Recruitee subdomain in https://<company>.recruitee.com. */
     listUrl(params = {}) {
@@ -671,6 +696,12 @@ export const ATS_TEMPLATES = [
     // resolveUrl turns it into <host>/jobs.rss. A deeper path (/jobs/internal/,
     // which robots disallows anyway) still does not match.
     targetPattern: /teamtailor\.com\/?(?:jobs(\.rss)?\/?)?(\?|#|$)/i,
+
+    params: [
+      { name: 'company', required: true, description: 'The subdomain in https://<company>.teamtailor.com.' },
+      { name: 'per_page', required: false, description: 'Jobs per feed page (feed default 100).' },
+      { name: 'offset', required: false, description: 'Jobs to skip, for paging.' }
+    ],
 
     /** `company` is the subdomain in https://<company>.teamtailor.com. */
     listUrl(params = {}) {

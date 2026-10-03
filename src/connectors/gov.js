@@ -199,6 +199,11 @@ export const GOV_TEMPLATES = [
       'unknown positions), and vPIC\'s own error codes are reported rather than swallowed.',
     targetPattern: /vpic\.nhtsa\.dot\.gov\/api\/vehicles\/DecodeVin/i,
 
+    params: [
+      { name: 'vin', required: true, description: 'The VIN to decode; "*" marks an unknown position, as in 5UXWX7C5*BA.' },
+      { name: 'modelYear', required: false, description: 'Model year, which vPIC says improves decode accuracy.' }
+    ],
+
     /**
      * @param {{ vin: string, modelYear?: string|number }} params
      */
@@ -341,6 +346,17 @@ export const GOV_TEMPLATES = [
       'Free and keyless. It is a registry lookup, not a people-search: it returns one record per ' +
       'NPI and joins nothing to it.',
     targetPattern: /npiregistry\.cms\.hhs\.gov\/api/i,
+
+    // At least one search criterion is required; none of them is on its own.
+    params: [
+      ...NPI_SEARCH_FIELDS.map(name => ({
+        name,
+        required: false,
+        description: 'Registry search criterion, in its own spelling. Pass at least one.'
+      })),
+      { name: 'limit', required: false, description: `Records to return, 1-${NPI_MAX_LIMIT} (default ${NPI_DEFAULT_LIMIT}).` },
+      { name: 'skip', required: false, description: `Records to skip, 0-${NPI_MAX_SKIP}.` }
+    ],
 
     /**
      * @param {Record<string, string|number>} params — the registry's own search fields

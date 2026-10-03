@@ -93,6 +93,37 @@ describe('reddit-thread extraction', () => {
   });
 });
 
+/**
+ * R24 (2026-10-03): /r/python/comments/1w2lsvx/ returned the r/node post with
+ * nothing said — only the id reaches the archive. Ids are unique across
+ * Reddit (reddit.com itself redirects such a URL to the real subreddit), so
+ * the record is right; the caller is told, not refused.
+ */
+describe('reddit-thread URL naming the wrong subreddit (R24)', () => {
+  const WRONG = 'https://www.reddit.com/r/python/comments/1w2lsvx/i_built_volten/';
+
+  test('returns the post with a warning naming both subreddits', async () => {
+    const result = await registry.run('reddit-thread', fixture, WRONG, template.resolveUrl(WRONG));
+    assert.equal(result.data.subreddit, 'node');
+    assert.equal(result.data.url, PAGE);
+    assert.equal(result.warnings.length, 1);
+    assert.match(result.warnings[0], /r\/python.*r\/node/);
+  });
+
+  test('the right subreddit, any case, carries no warnings field', async () => {
+    for (const url of [PAGE, 'https://old.reddit.com/r/Node/comments/1w2lsvx/']) {
+      const result = await registry.run('reddit-thread', fixture, url, template.resolveUrl(url));
+      assert.equal('warnings' in result, false, url);
+    }
+  });
+
+  test('a URL that names no subreddit has nothing to contradict', async () => {
+    const url = 'https://www.reddit.com/comments/1w2lsvx';
+    const result = await registry.run('reddit-thread', fixture, url, template.resolveUrl(url));
+    assert.equal('warnings' in result, false);
+  });
+});
+
 describe('retired templates', () => {
   test('linkedin-profile and tweet are retired, not shipped, and each names its reason', () => {
     const shipped = new Set(TEMPLATES.map(t => t.id));
