@@ -40,7 +40,8 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     ['akamai', /title "Access Denied"/],
     ['vercel', /title "Vercel Security Checkpoint"/],
     ['aws-waf', /AWS WAF challenge interstitial on a \d+-character page/],
-    ['f5', /title "Request Rejected"/]
+    ['f5', /title "Request Rejected"/],
+    ['fastly', /title "Client Challenge"/]
   ]) {
     test(`${vendor}`, () => {
       const hit = detectChallengePage(page(vendor));
@@ -86,6 +87,18 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     assert.equal(detectChallengePage({ title: 'Why does my F5 say Request Rejected?', html: `<p>${text}</p>`, text }), null);
   });
 
+  test('a Fastly challenge whose title was customised is still named by its script prefix', () => {
+    const html = '<title>Acme</title><body><noscript>Please enable JavaScript to proceed.</noscript><script>loadScript(\'/_fs-ch-1T1wmsGaOgGaSxcX/errors.js\')</script></body>';
+    const hit = detectChallengePage({ title: 'Acme', html, text: '' });
+    assert.equal(hit?.vendor, 'fastly');
+    assert.match(hit.evidence, /Fastly client challenge script on a 0-character page/);
+  });
+
+  test('a long page is never judged by the Fastly script prefix', () => {
+    const html = '<script src="/_fs-ch-abc/script.js"></script><article>' + PROSE + '</article>';
+    assert.equal(detectChallengePage({ title: 'Home', html, text: PROSE }), null);
+  });
+
   test('an ordinary page is null', () => {
     assert.equal(detectChallengePage({ title: 'Web form', html: '<h1>Web form</h1>', text: 'Web form Text input' }), null);
   });
@@ -104,7 +117,7 @@ describe('documentVerdict', () => {
   });
 
   test('every vendor fixture fails the verdict with its vendor', () => {
-    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel', 'aws-waf', 'f5']) {
+    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel', 'aws-waf', 'f5', 'fastly']) {
       const v = documentVerdict(page(vendor));
       assert.equal(v.success, false, vendor);
       assert.equal(v.blocked?.vendor, vendor);
@@ -116,6 +129,17 @@ describe('documentVerdict', () => {
     assert.equal(v.success, false);
     assert.equal(v.status, 444);
     assert.deepEqual(v.blocked, { vendor: 'f5', evidence: 'title "Request Rejected"' });
+  });
+
+  test("lemonde.fr's HTTP 200 client challenge is blocked by fastly, not passed as a page", () => {
+    const scraped = page('fastly', 'https://www.lemonde.fr/mentions-legales/');
+    // The hidden notice is real text, so neither the empty-shell rule nor an
+    // error title would have caught this document.
+    assert.match(scraped.text, /^A required part of this site/);
+    const v = documentVerdict(scraped, { fetcher: 'a plain fetch', rendered: false, contentReturned: false });
+    assert.equal(v.success, false);
+    assert.equal(v.status, 200);
+    assert.deepEqual(v.blocked, { vendor: 'fastly', evidence: 'title "Client Challenge"' });
   });
 
   test('an HTTP error page names the status and keeps the title', () => {

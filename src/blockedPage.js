@@ -1,7 +1,7 @@
 /**
  * blockedPage.js — decide whether a fetched document is the page or a wall.
  *
- * Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel, AWS WAF and F5 answer
+ * Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel, AWS WAF, F5 and Fastly answer
  * a blocked request with a page of their own, often under HTTP 200: a title, some prose
  * and a challenge script. Reported as a successful scrape, that page hides
  * the block — producthunt.com came back "success:true, title: Just a
@@ -80,6 +80,19 @@ const CHALLENGES = [
     title: /^request rejected$/i,
     markers: /the requested url was rejected\.?\s*please consult with your administrator/i,
     evidence: 'an F5 "Request Rejected" blocking page'
+  },
+  {
+    // Fastly's client challenge: HTTP 200, the title "Client Challenge", a
+    // <noscript> asking for JavaScript and a loader for
+    // /_fs-ch-<token>/script.js, every asset under that same prefix
+    // (lemonde.fr to a plain fetch, 3 KB, `via: 1.1 varnish` and
+    // `x-served-by: cache-…`, 2026-10-03). Its only text outside <noscript>
+    // is a hidden "A required part of this site couldn't load" notice, which
+    // is why it read as a page rather than an empty shell.
+    vendor: 'fastly',
+    title: /^client challenge$/i,
+    markers: /\/_fs-ch-[\w-]+\//,
+    evidence: 'a Fastly client challenge script'
   }
 ];
 

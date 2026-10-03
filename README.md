@@ -202,7 +202,7 @@ URL is reported in `reason` as a retired handle.
 ### Recognising a blocked page
 
 `documentVerdict` says what a fetched document is: the page, a bot-wall
-interstitial (Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel, AWS WAF, F5), an
+interstitial (Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel, AWS WAF, F5, Fastly), an
 HTTP error page, an empty shell, a short error-titled placeholder, or a
 client-rendered app's own short error fallback under a normal title (quora.com's
 "Something went wrong. Wait a moment and try again."). A wall
