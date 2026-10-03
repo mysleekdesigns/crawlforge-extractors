@@ -140,10 +140,17 @@ baseline instead of keeping the whole DOM.
 ### Reading a page's embedded state
 
 `extractEmbeddedState` returns the JSON a page already ships in its own HTML —
-`__NEXT_DATA__`, RSC flight chunks (`self.__next_f`), `__NUXT__`,
-`__APOLLO_STATE__`, `__INITIAL_STATE__`, `__PRELOADED_STATE__` and
-`<script type="application/json">` blocks. No LLM is involved, so the values are
-the site's own and cannot be fabricated.
+`__NEXT_DATA__`, RSC flight rows (`self.__next_f`, `$<id>` references between
+rows resolved, plus a `data_rows` index of the rows that carry data rather
+than markup), `__NUXT__`, Nuxt 3's `__NUXT_DATA__` (devalue-decoded as
+`nuxt_data`), SvelteKit's `kit.start` data (`sveltekit_data`),
+`__APOLLO_STATE__`, `__INITIAL_STATE__`, `__PRELOADED_STATE__`, `ytInitialData`,
+`ytInitialPlayerResponse`, `__remixContext` and other `window`/`var` globals,
+Inertia's `data-page` (`inertia_page`), Shopify's analytics meta and product
+JSON (`shopify`), JSON objects of 2 KB or more in `data-*` attributes
+(`json_attributes`) and `<script type="application/json">` / `"text/json"`
+blocks. No LLM is involved, so the values are the site's own and cannot be
+fabricated.
 
 ```js
 import { extractEmbeddedState, selectJsonPath } from 'crawlforge-extractors';
@@ -161,11 +168,17 @@ Payloads are never truncated — a half-serialized object is worse than a big
 one. `selectJsonPath` is how a caller asks for less: dotted keys and array
 indexes only, no wildcards, filters or recursive descent. A path that does not
 resolve throws naming the keys that *were* available at the point it stopped,
-so a typo comes back fixable rather than empty.
+so a typo comes back fixable rather than empty. `findJsonPaths(data, 'price')`
+lists every property with that name and a 200-character preview, each path
+ready for `selectJsonPath`.
 
-A source that is present but is not JSON — Nuxt 2's IIFE wrapper, Nuxt 3's
-unquoted-key object literal — is reported in `warnings` unparsed. Nothing here
-calls `eval`.
+A global that is not JSON is read as a JavaScript literal when it is one:
+unquoted keys, single quotes, `void 0`, `new Date(…)` and the single-return
+IIFE Nuxt 2 and devalue emit (`(function(a){return {x:a}}(1))`). That is static
+evaluation over an acorn parse tree — identifiers resolve only to the IIFE's
+own parameters, and no code runs. Anything else (a call, a read of another
+variable, a multi-statement function) is reported in `warnings` unparsed.
+Nothing here calls `eval`.
 
 ### A Shopify product from the page's JSON-LD
 

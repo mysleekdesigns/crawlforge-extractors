@@ -208,14 +208,26 @@ export interface EmbeddedStateResult {
   warnings: string[];
 }
 
+export interface ExtractEmbeddedStateOptions {
+  /** Also keep the undecoded `__NUXT_DATA__` devalue array in `json_scripts`. Default false. */
+  raw?: boolean;
+}
+
 /**
  * Find the JSON state a page already ships in its own HTML: __NEXT_DATA__,
- * RSC flight chunks (self.__next_f), __NUXT__, __APOLLO_STATE__,
- * __INITIAL_STATE__, __PRELOADED_STATE__ and <script type="application/json">.
+ * RSC flight rows (self.__next_f, references resolved, plus a `data_rows`
+ * index), __NUXT__ / __NUXT_DATA__ (devalue-decoded as `nuxt_data`), SvelteKit
+ * `kit.start` data, Apollo, Redux-style globals, ytInitialData and other
+ * `window`/`var` assignments (JSON or a statically evaluated JS literal),
+ * Inertia `data-page`, Shopify meta and product JSON, JSON `data-*`
+ * attributes and <script type="application/json"|"text/json">.
  *
  * Pass the RAW html. A script-stripped document has nothing left to read.
  */
-export declare function extractEmbeddedState(rawHtml: string): EmbeddedStateResult;
+export declare function extractEmbeddedState(
+  rawHtml: string,
+  options?: ExtractEmbeddedStateOptions
+): EmbeddedStateResult;
 
 /** Split a path into its segments. Dotted keys and array indexes only. */
 export declare function parseJsonPath(path: string): string[];
@@ -226,6 +238,26 @@ export declare function parseJsonPath(path: string): string[];
  * the point it stopped.
  */
 export declare function selectJsonPath(root: unknown, path: string): unknown;
+
+/** One property whose name matched, as `findJsonPaths` reports it. */
+export interface JsonPathMatch {
+  /** In `selectJsonPath` syntax: `selectJsonPath(root, path)` returns the value. */
+  path: string;
+  /** The first `previewChars` characters of the value's JSON. */
+  preview: string;
+  /** Present (false) when a key on the path contains "." or "[" or is empty, so the path cannot be read back. */
+  addressable?: false;
+}
+
+/**
+ * Every property named `key` (case-insensitive) anywhere under `root`, in
+ * document order — discover a path without downloading the payload.
+ */
+export declare function findJsonPaths(
+  root: unknown,
+  key: string,
+  options?: { limit?: number; previewChars?: number; maxNodes?: number }
+): { matches: JsonPathMatch[]; total: number; truncated: boolean };
 
 /** One variant as read from a product page's JSON-LD; stock counts and compare-at prices are not in JSON-LD. */
 export interface ShopifyJsonLdVariant {

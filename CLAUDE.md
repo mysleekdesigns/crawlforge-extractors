@@ -26,7 +26,12 @@ This is a pure library. It has:
 - **no network access** — no `fetch`, no HTTP client;
 - **no `process.env` reads** — no configuration, no kill switches;
 - **no `eval`, `vm`, or `child_process`**;
-- **one runtime dependency**, `cheerio`.
+- **three runtime dependencies**: `cheerio`, plus `acorn` and `devalue` — two
+  pure parsers with no dependencies of their own (added 2026-10-03 for
+  extract_embedded_state, owner-approved). `acorn` only builds a parse tree
+  that `src/jsLiteral.js` evaluates statically; nothing it parses is run.
+  `devalue` is pinned to 5.x: 6.x declares Node >= 22.17 and the MCP server
+  supports Node 20.
 
 Those properties are why a security review of this package is short, and why the
 consumers can treat its output as the only thing they need to check. Keep them.
