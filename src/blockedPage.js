@@ -1,7 +1,7 @@
 /**
  * blockedPage.js — decide whether a fetched document is the page or a wall.
  *
- * Cloudflare, Amazon, DataDome, PerimeterX, Akamai and Vercel all answer a
+ * Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel and AWS WAF answer a
  * blocked request with HTTP 200 and a page of their own: a title, some prose
  * and a challenge script. Reported as a successful scrape, that page hides
  * the block — producthunt.com came back "success:true, title: Just a
@@ -57,6 +57,17 @@ const CHALLENGES = [
     title: /^vercel security checkpoint/i,
     markers: /vercel\.link\/security-checkpoint|_vercel\/challenge|x-vercel-challenge-token/i,
     evidence: 'a Vercel Security Checkpoint page'
+  },
+  {
+    // AWS WAF's challenge action answers with HTTP 202 and a page with no
+    // title and no text: `window.gokuProps = {…}` and a token.awswaf.com
+    // challenge.js that reloads into the real page about 0.4 s later
+    // (amazon.com to headless Chromium, 4 of 4 runs, 2026-10-03). gokuProps
+    // is the payload the WAF injects into its own page; a real page that
+    // integrates the WAF SDK loads challenge.js without it.
+    vendor: 'aws-waf',
+    markers: /window\.gokuProps\s*=/,
+    evidence: 'an AWS WAF challenge interstitial'
   }
 ];
 

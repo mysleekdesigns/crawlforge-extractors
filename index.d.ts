@@ -308,7 +308,7 @@ export default TemplateRegistry;
 
 /** The bot-defence vendor whose interstitial a document is, and what gave it away. */
 export interface ChallengeVerdict {
-  vendor: 'cloudflare' | 'amazon' | 'datadome' | 'perimeterx' | 'akamai' | 'vercel';
+  vendor: 'cloudflare' | 'amazon' | 'datadome' | 'perimeterx' | 'akamai' | 'vercel' | 'aws-waf';
   evidence: string;
 }
 
