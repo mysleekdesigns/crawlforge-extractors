@@ -38,7 +38,8 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     ['datadome', /DataDome captcha frame on a \d+-character page/],
     ['perimeterx', /PerimeterX \/ HUMAN challenge element/],
     ['akamai', /title "Access Denied"/],
-    ['vercel', /title "Vercel Security Checkpoint"/]
+    ['vercel', /title "Vercel Security Checkpoint"/],
+    ['aws-waf', /AWS WAF challenge interstitial on a \d+-character page/]
   ]) {
     test(`${vendor}`, () => {
       const hit = detectChallengePage(page(vendor));
@@ -61,6 +62,16 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     assert.equal(detectChallengePage({ title: 'Sign in — Example', html, text: PROSE }), null);
   });
 
+  test('a page that loads the AWS WAF SDK without the injected payload is not a block', () => {
+    const html = '<title>Checkout</title><script src="https://abc.us-east-1.token.awswaf.com/abc/def/challenge.js"></script><p>Your basket</p>';
+    assert.equal(detectChallengePage({ title: 'Checkout', html, text: 'Your basket' }), null);
+  });
+
+  test('a long page is never judged by the AWS WAF marker', () => {
+    const html = '<script>window.gokuProps = {}</script><article>' + PROSE + '</article>';
+    assert.equal(detectChallengePage({ title: 'Home', html, text: PROSE }), null);
+  });
+
   test('an ordinary page is null', () => {
     assert.equal(detectChallengePage({ title: 'Web form', html: '<h1>Web form</h1>', text: 'Web form Text input' }), null);
   });
@@ -79,7 +90,7 @@ describe('documentVerdict', () => {
   });
 
   test('every vendor fixture fails the verdict with its vendor', () => {
-    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel']) {
+    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel', 'aws-waf']) {
       const v = documentVerdict(page(vendor));
       assert.equal(v.success, false, vendor);
       assert.equal(v.blocked?.vendor, vendor);
