@@ -454,3 +454,42 @@ export declare function redactPii(
   text: string,
   options?: { entities?: string[]; replaceStyle?: 'tag' | 'mask' | 'remove' }
 ): { text: string; redaction: PiiRedaction };
+
+/**
+ * Flatten elements to text, one line per block element (`<h1>Hi</h1><p>there</p>`
+ * reads "Hi\nthere"); table cells on a row are joined by a space. Reads a
+ * detached clone. `root` defaults to `<body>`; several matched elements are
+ * each read, a line break between them. Remove `<script>`/`<style>` first.
+ */
+export declare function flattenText($: CheerioDoc, root?: ReturnType<CheerioDoc>): string;
+
+/** One `<a href>` as extract_links returns it on both surfaces. */
+export interface LinkRecord {
+  /** Absolute for http(s); as written for an anchor or an unresolvable relative href; for `other`, kept only for `mailto:`/`tel:`, else null. */
+  href: string | null;
+  /** The link's text, whitespace collapsed; may be empty. */
+  text: string;
+  /** `internal` = same hostname as the page; `other` = any non-web scheme (`mailto:`, `tel:`, `javascript:`, …). */
+  type: 'internal' | 'external' | 'anchor' | 'other' | 'relative';
+  /** Hostname of an http(s) link, else null. */
+  domain: string | null;
+  /** The `rel` attribute, else null. */
+  rel: string | null;
+  /** The href as written on the page (null where `href` is null). */
+  original_href: string | null;
+  /** The `title` attribute, when present. */
+  title?: string;
+}
+
+/**
+ * Every `<a href>` as a `LinkRecord`, in document order. The resolution base
+ * is `baseUrl`, else the document's `<base href>` resolved against `pageUrl`,
+ * else `pageUrl`; internal versus external is judged by `pageUrl`'s hostname
+ * (`baseUrl`'s without one). `#fragment`-only hrefs are skipped unless
+ * `includeAnchors`. Deduplicated (unless `dedupe: false`) on the URL without
+ * fragment or trailing slash, keeping the first.
+ */
+export declare function extractLinkRecords(
+  $: CheerioDoc,
+  options?: { pageUrl?: string; baseUrl?: string; includeAnchors?: boolean; dedupe?: boolean }
+): LinkRecord[];
