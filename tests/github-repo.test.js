@@ -28,6 +28,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { TemplateRegistry } from '../src/templates.js';
 
 const registry = new TemplateRegistry();
@@ -92,12 +93,12 @@ describe('github-repo sidebar facts from the embedded JSON', () => {
 
 describe('github-repo open issues from the tab counter', () => {
   test('the issues tab counter is read', async () => {
-    assert.equal((await run(LIVE)).open_issues, '105');
+    assert.equal((await run(LIVE)).open_issues, 105);
   });
 
   test('the exact title count wins over the abbreviated text', async () => {
     const html = '<span id="issues-repo-tab-count" title="5,102" class="Counter">5.1k</span>';
-    assert.equal((await run(html)).open_issues, '5,102');
+    assert.equal((await run(html)).open_issues, 5102);
   });
 
   test('a "Not available" title is not mistaken for a count', async () => {
@@ -172,5 +173,91 @@ describe('github-repo description is the About text, never the OG boilerplate', 
   test('a description that merely starts with "Contribute" is not mistaken for boilerplate', async () => {
     const html = '<meta property="og:description" content="Contribute to open source: a beginner\'s guide." />';
     assert.equal((await run(html)).description, "Contribute to open source: a beginner's guide.");
+  });
+});
+
+/**
+ * R24 (2026-10-03), against https://github.com/honojs/hono: stars came back as
+ * the counter's rounded text ("29.1k", "32.4k"), language null, and no README
+ * summary although the description promised one. The fixture is condensed
+ * from a live capture of that page (CrawlForge fetch_url, 2026-10-03): the
+ * elements the template reads, verbatim. The page carries exact counts in the
+ * sidebar payload and in each counter's title=, and the rendered README in
+ * article.markdown-body; the Languages section is a skeleton with no data.
+ */
+describe('github-repo against the live hono page (R24)', () => {
+  const HONO = readFileSync(new URL('./fixtures/github-repo-hono.html', import.meta.url), 'utf8');
+  const hono = async () => (await registry.run('github-repo', HONO, 'https://github.com/honojs/hono')).data;
+
+  test('counts are exact integers, never the rounded counter text', async () => {
+    const data = await hono();
+    assert.equal(data.stars, 32407);
+    assert.equal(data.forks, 1367);
+    assert.equal(data.watchers, 90);
+    assert.equal(data.open_issues, 268);
+  });
+
+  test('without the payload, the counters\' title= gives the exact count', async () => {
+    const html = '<strong itemprop="name"><a>hono</a></strong>' +
+      '<span id="repo-stars-counter-star" title="32,407" class="Counter js-social-count">32.4k</span>' +
+      '<span id="repo-network-counter" title="1,367" class="Counter">1.4k</span>';
+    const data = await run(html);
+    assert.equal(data.stars, 32407);
+    assert.equal(data.forks, 1367);
+  });
+
+  test('a rounded count with no exact source reads null, not a guess', async () => {
+    const html = '<strong itemprop="name"><a>hono</a></strong>' +
+      '<span class="octicon-eye"></span><strong>1.7k</strong>';
+    assert.equal((await run(html)).watchers, null);
+  });
+
+  test('readme_summary is the README\'s first paragraph with text, past the badge row', async () => {
+    assert.equal(
+      (await hono()).readme_summary,
+      'Hono - means flame🔥 in Japanese - is a small, simple, and ultrafast web framework built on ' +
+      'Web Standards. It works on any JavaScript runtime: Cloudflare Workers, Fastly Compute, Deno, ' +
+      'Bun, Vercel, AWS Lambda, Lambda@Edge, and Node.js.'
+    );
+  });
+
+  test('a long first paragraph is capped at 500 characters', async () => {
+    const html = `<article class="markdown-body"><p>${'word '.repeat(200)}</p></article>`;
+    const summary = (await run(html)).readme_summary;
+    assert.equal(summary.length, 500);
+    assert.ok(summary.endsWith('…'));
+  });
+
+  test('a page without a rendered README reports null', async () => {
+    assert.equal((await run(LIVE)).readme_summary, null);
+  });
+
+  test('language stays null — the served Languages section is a skeleton — and the description says so', async () => {
+    assert.equal((await hono()).language, null);
+    const { description } = registry.get('github-repo');
+    assert.match(description, /Language and last-push date are null/);
+    assert.match(description, /README summary/);
+  });
+});
+
+describe('github-repo /tree/ URLs (R24)', () => {
+  const template = registry.get('github-repo');
+
+  test('template:"auto" picks github-repo for a /tree/<branch>/<path> link', () => {
+    assert.equal(registry.detect('https://github.com/honojs/hono/tree/main/src')?.id, 'github-repo');
+    assert.equal(registry.detect('https://github.com/honojs/hono/tree/v4.6.0')?.id, 'github-repo');
+  });
+
+  test('a /tree/ link fetches the repository overview page', () => {
+    assert.equal(template.resolveUrl('https://github.com/honojs/hono/tree/main/src'), 'https://github.com/honojs/hono');
+  });
+
+  test('the repository URL itself is fetched as given', () => {
+    assert.equal(template.resolveUrl('https://github.com/honojs/hono'), 'https://github.com/honojs/hono');
+  });
+
+  test('other repo sub-pages are still not claimed', () => {
+    assert.equal(registry.detect('https://github.com/honojs/hono/issues/123'), null);
+    assert.equal(registry.detect('https://github.com/honojs/hono/blob/main/README.md'), null);
   });
 });

@@ -32,6 +32,12 @@
  * Defining extractList is the only signal that a template is a list connector;
  * there is no `kind` field. A list connector may also define
  * resolveUrl/targetPattern, so a caller can pass a URL instead of params.
+ * Every template with a listUrl declares what it takes, which list() publishes:
+ *   params                — [{ name, required, description }]
+ *
+ * One more optional hook reports what the caller should know about a request
+ * that still produced a correct record; run() returns it as `warnings`:
+ *   warnings(data,url)    — string[]
  *
  * A connector against a key-based API declares it:
  *   requiresApiKey: true
@@ -519,6 +525,37 @@ function githubCounter($, sel) {
   return /\d/.test(exact || '') ? exact : text($, sel);
 }
 
+/**
+ * A count as an integer, or null. The sidebar payload carries exact numbers
+ * (stargazerCount: 32407) and a counter's title= the same number with commas
+ * ("32,407"); the counter's visible text is rounded ("32.4k") and reads as
+ * null here rather than as a number it is not.
+ */
+function githubCount(value) {
+  if (typeof value === 'number') return Number.isInteger(value) ? value : null;
+  const digits = typeof value === 'string' ? value.replace(/,/g, '').trim() : '';
+  return /^\d+$/.test(digits) ? Number.parseInt(digits, 10) : null;
+}
+
+/** README excerpts are capped: the first paragraph of some READMEs is an essay. */
+const README_SUMMARY_MAX = 500;
+
+/**
+ * The README's first paragraph with text in it. The rendered README is in the
+ * served page (article.markdown-body); a leading paragraph of badges is all
+ * <img> and has no text, so it is skipped.
+ */
+function githubReadmeSummary($) {
+  for (const el of $('article.markdown-body p').toArray()) {
+    const paragraph = $(el).text().replace(/\s+/g, ' ').trim();
+    if (!paragraph) continue;
+    return paragraph.length > README_SUMMARY_MAX
+      ? `${paragraph.slice(0, README_SUMMARY_MAX - 1).trimEnd()}…`
+      : paragraph;
+  }
+  return null;
+}
+
 // ── Template definitions ─────────────────────────────────────────────────────
 
 export const TEMPLATES = [
@@ -600,6 +637,13 @@ export const TEMPLATES = [
       parsed.hash = '';
       return parsed.toString();
     },
+
+    params: [
+      { name: 'store', required: true, description: 'Storefront domain, e.g. "www.allbirds.com".' },
+      { name: 'collection', required: true, description: 'Collection handle, e.g. "mens" from /collections/mens.' },
+      { name: 'limit', required: false, description: 'Products per page, 1-250 (Shopify default 30).' },
+      { name: 'page', required: false, description: 'Page number, 1 or more.' }
+    ],
 
     /**
      * Build the listing URL from params instead of a URL.
@@ -749,8 +793,24 @@ export const TEMPLATES = [
   {
     id: 'github-repo',
     name: 'GitHub Repository',
-    description: 'Scrape a GitHub repository page for stars, forks, description, language, topics, and README summary.',
-    targetPattern: /github\.com\/[^/]+\/[^/]+\/?$/i,
+    description:
+      'Scrape a GitHub repository page for description, exact star, fork, watcher and open-issue ' +
+      'counts, topics, licence, homepage and a README summary (the README\'s first paragraph). ' +
+      'A /tree/<branch>/… link reads the repository\'s overview page. Language and last-push ' +
+      'date are null on the page GitHub serves logged out — its browser fetches them after load.',
+    targetPattern: /github\.com\/[^/]+\/[^/]+(?:\/tree\/.+)?\/?$/i,
+
+    /**
+     * A /tree/<branch>/<path> link is a directory listing: no About sidebar,
+     * no README of the repository. The repo-level facts this template returns
+     * live on the overview page, so that is what gets fetched.
+     */
+    resolveUrl(url) {
+      const parsed = safeUrl(url);
+      const repo = parsed && /^\/([^/]+)\/([^/]+)\/tree\//.exec(parsed.pathname);
+      return repo ? `${parsed.origin}/${repo[1]}/${repo[2]}` : url;
+    },
+
     extract($) {
       const about = githubSidebarAbout($);
       return {
@@ -761,11 +821,13 @@ export const TEMPLATES = [
         description: about
           ? tidy(about.description)
           : tidy(text($, 'p.f4.my-3')) || githubOgDescription($),
-        stars: text($, '#repo-stars-counter-star') || text($, '[aria-label*="stargazers"]'),
-        forks: text($, '#repo-network-counter') || text($, '[aria-label*="forks"]'),
+        // Exact integers: the payload's counts first, then the counter's
+        // title=. The counter's text ("32.4k") is rounded and never used.
+        stars: githubCount(about?.stargazerCount) ?? githubCount(attr($, '#repo-stars-counter-star', 'title')),
+        forks: githubCount(about?.forksCount) ?? githubCount(attr($, '#repo-network-counter', 'title')),
         // React (logged-out) layout has no watchers aria-label; the count is
         // the <strong> right after the single octicon-eye.
-        watchers: text($, '.octicon-eye + strong') || text($, '[aria-label*="watchers"]'),
+        watchers: githubCount(about?.watcherCount) ?? githubCount(text($, '.octicon-eye + strong')),
         // Language and the last-push date appear nowhere in the logged-out
         // page (verified 2026-08-26 across five User-Agents, embedded JSON
         // included): the client fetches them after load from header-gated
@@ -781,7 +843,8 @@ export const TEMPLATES = [
         // When the sidebar payload is present it is authoritative: an empty
         // website means "no homepage", not "go scrape some external link".
         homepage: safeHref(about ? about.website : attr($, 'a[href][rel="noopener noreferrer"]', 'href')),
-        open_issues: githubCounter($, '#issues-repo-tab-count') || text($, '.Counter[aria-label*="issue"]')
+        open_issues: githubCount(githubCounter($, '#issues-repo-tab-count') || text($, '.Counter[aria-label*="issue"]')),
+        readme_summary: githubReadmeSummary($)
       };
     }
   },
@@ -790,7 +853,19 @@ export const TEMPLATES = [
     id: 'youtube-video',
     name: 'YouTube Video',
     description: 'Scrape a YouTube video page for title, channel, views, likes, publish date, and description.',
-    targetPattern: /youtube\.com\/watch/i,
+    targetPattern: /youtube\.com\/watch|youtu\.be\/[\w-]+/i,
+
+    /**
+     * youtu.be/<id> is the share-button link. youtu.be only redirects, so the
+     * watch page for the same id is what gets fetched.
+     */
+    resolveUrl(url) {
+      const parsed = safeUrl(url);
+      if (!parsed || !/^(?:www\.)?youtu\.be$/i.test(parsed.hostname)) return url;
+      const id = parsed.pathname.split('/').filter(Boolean)[0];
+      return id ? `https://www.youtube.com/watch?v=${encodeURIComponent(id)}` : url;
+    },
+
     extract($) {
       return {
         title: attr($, 'meta[name="title"]', 'content') || attr($, 'meta[property="og:title"]', 'content'),
@@ -866,6 +941,21 @@ export const TEMPLATES = [
         removed: post.removed_by_category ?? post._meta?.removal_type ?? null,
         note: 'Read from the Arctic Shift archive, not reddit.com. Scores and comment counts of content less than ~36h old may read 0/1. For the comment tree call reddit_search with mode:"thread" and this id.'
       };
+    },
+
+    /**
+     * Only the post id reaches the archive, so a URL naming the wrong
+     * subreddit still returns the right post — ids are unique across Reddit,
+     * and reddit.com itself redirects such a URL to the real one. That is
+     * worth a warning, not a refusal: the caller gets the post it named.
+     */
+    warnings(data, url) {
+      const named = /reddit\.com\/r\/([^/?#]+)\/comments\//i.exec(url ?? '')?.[1];
+      if (!named || !data.subreddit || named.toLowerCase() === data.subreddit.toLowerCase()) return [];
+      return [
+        `The URL names r/${named}, but post ${data.id} is in r/${data.subreddit}. Reddit post ids ` +
+        'are unique, so this is the post the id names; data.url is its real address.'
+      ];
     }
   },
 
@@ -1177,6 +1267,8 @@ export class TemplateRegistry {
       targetPattern: t.targetPattern ? t.targetPattern.toString() : null,
       // extractList is the only signal that a template returns N entities.
       mode: t.extractList ? 'list' : 'entity',
+      // What listUrl takes, so a caller can drive a connector without a URL.
+      ...(t.params ? { params: t.params } : {}),
       ...(t.requiresApiKey ? { requires_api_key: true } : {}),
       ...(t.credentialRef ? { credential_ref: t.credentialRef } : {})
     }));
@@ -1254,13 +1346,18 @@ export class TemplateRegistry {
       );
     }
 
+    // Something about the request worth telling the caller that does not make
+    // the record wrong (reddit-thread: the URL named the wrong subreddit).
+    const warnings = template.warnings ? template.warnings(data, url) : [];
+
     return {
       template: id,
       template_name: template.name,
       url,
       ...(fetchedUrl !== url ? { fetchedUrl } : {}),
       data,
-      extractedAt: new Date().toISOString()
+      extractedAt: new Date().toISOString(),
+      ...(warnings.length > 0 ? { warnings } : {})
     };
   }
 

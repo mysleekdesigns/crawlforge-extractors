@@ -86,3 +86,30 @@ describe('youtube-video core fields', () => {
     assert.equal(data.video_id, '_EYvOGlR2dw');
   });
 });
+
+/**
+ * R24 (2026-10-03): template:"auto" refused https://youtu.be/dQw4w9WgXcQ — the
+ * share-button link — with "No template matches". youtu.be only redirects, so
+ * the watch page for the same id is fetched.
+ */
+describe('youtube-video youtu.be share links (R24)', () => {
+  const template = registry.get('youtube-video');
+
+  test('template:"auto" picks youtube-video for a youtu.be link', () => {
+    assert.equal(registry.detect('https://youtu.be/dQw4w9WgXcQ')?.id, 'youtube-video');
+    assert.equal(registry.detect('https://youtu.be/dQw4w9WgXcQ?si=abc123&t=42')?.id, 'youtube-video');
+  });
+
+  test('a youtu.be link fetches the watch page for the same id', () => {
+    assert.equal(template.resolveUrl('https://youtu.be/dQw4w9WgXcQ?si=abc123&t=42'), 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  });
+
+  test('a watch URL is fetched as given', () => {
+    const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    assert.equal(template.resolveUrl(url), url);
+  });
+
+  test('a bare youtu.be with no id is not claimed', () => {
+    assert.equal(registry.detect('https://youtu.be/'), null);
+  });
+});

@@ -62,6 +62,20 @@ export interface ScrapeTemplate {
    * host rate limiter's job.
    */
   crawlDelaySeconds?: number;
+  /** What listUrl takes. Declared by every template that defines listUrl. */
+  params?: TemplateParam[];
+  /**
+   * Notes about a request that still produced a correct record (reddit-thread:
+   * the URL named the wrong subreddit). run() returns them as `warnings`.
+   */
+  warnings?: (data: Record<string, unknown>, url: string) => string[];
+}
+
+/** One parameter a list connector's listUrl accepts. */
+export interface TemplateParam {
+  name: string;
+  required: boolean;
+  description: string;
 }
 
 export interface TemplateSummary {
@@ -76,6 +90,8 @@ export interface TemplateSummary {
   requires_api_key?: true;
   /** Present only when the template sets credentialRef. */
   credential_ref?: string;
+  /** Present on every template that can be driven by params. */
+  params?: TemplateParam[];
 }
 
 export interface TemplateResult {
@@ -86,6 +102,8 @@ export interface TemplateResult {
   fetchedUrl?: string;
   data: Record<string, unknown>;
   extractedAt: string;
+  /** Present only when the template's warnings hook reported something. */
+  warnings?: string[];
 }
 
 export interface TemplateListResult {

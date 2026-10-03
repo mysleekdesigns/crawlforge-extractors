@@ -130,6 +130,77 @@ describe('TemplateRegistry.list', () => {
   });
 });
 
+/**
+ * R24 (2026-10-03): template:"list" showed no connector params, so a caller
+ * had to guess {company} vs {board} vs {vin} or read the source. Every
+ * template with a listUrl now declares them, and list() publishes them. The
+ * declaration is checked against listUrl itself, so it cannot drift.
+ */
+describe('TemplateRegistry.list connector params (R24)', () => {
+  // A value each required param accepts, by name.
+  const SAMPLE = { company: 'stripe', store: 'www.allbirds.com', collection: 'mens', vin: '5UXWX7C5*BA' };
+  const withListUrl = TEMPLATES.filter(t => t.listUrl);
+
+  test('every template with a listUrl publishes its params in list()', () => {
+    assert.ok(withListUrl.length >= 9);
+    for (const t of withListUrl) {
+      const entry = registry.list().find(e => e.id === t.id);
+      assert.ok(Array.isArray(entry.params) && entry.params.length > 0, `${t.id} lists no params`);
+      for (const p of entry.params) {
+        assert.equal(typeof p.name, 'string');
+        assert.equal(typeof p.required, 'boolean');
+        assert.ok(p.description.length > 0, `${t.id}.${p.name} has no description`);
+      }
+    }
+  });
+
+  test('templates without a listUrl publish no params field', () => {
+    for (const entry of registry.list()) {
+      if (!TEMPLATES.find(t => t.id === entry.id).listUrl) assert.equal('params' in entry, false, entry.id);
+    }
+  });
+
+  test('each declared required param is one listUrl refuses to go without, by name', () => {
+    for (const t of withListUrl) {
+      const required = t.params.filter(p => p.required).map(p => p.name);
+      for (const name of required) {
+        const others = Object.fromEntries(required.filter(n => n !== name).map(n => [n, SAMPLE[n]]));
+        assert.throws(() => t.listUrl(others), new RegExp(`"${name}"`), `${t.id} did not require ${name}`);
+      }
+    }
+  });
+
+  test('the declared required params are all listUrl needs', () => {
+    for (const t of withListUrl.filter(t => t.id !== 'npi-provider')) {
+      const given = Object.fromEntries(t.params.filter(p => p.required).map(p => [p.name, SAMPLE[p.name]]));
+      assert.doesNotThrow(() => t.listUrl(given), t.id);
+    }
+  });
+
+  test('npi-provider: no single criterion is required, any one declared criterion suffices', () => {
+    const npi = TEMPLATES.find(t => t.id === 'npi-provider');
+    assert.throws(() => npi.listUrl({}), /at least one search criterion/);
+    for (const p of npi.params.filter(p => !['limit', 'skip'].includes(p.name))) {
+      assert.doesNotThrow(() => npi.listUrl({ [p.name]: 'x' }), p.name);
+    }
+  });
+
+  test('every declared optional param reaches the URL listUrl builds, or extractList', () => {
+    // ashby's `descriptions` is applied at extract time — the API has no switch.
+    const EXTRACT_TIME = new Set(['ashby-jobs.descriptions']);
+    for (const t of withListUrl) {
+      const base = Object.fromEntries(t.params.filter(p => p.required).map(p => [p.name, SAMPLE[p.name]]));
+      if (t.id === 'npi-provider') base.number = '1234567890';
+      const without = t.listUrl(base);
+      for (const p of t.params.filter(p => !p.required && !(t.id === 'npi-provider' && p.name !== 'limit' && p.name !== 'skip'))) {
+        if (EXTRACT_TIME.has(`${t.id}.${p.name}`)) continue;
+        const value = ['content', 'details'].includes(p.name) ? true : 5;
+        assert.notEqual(t.listUrl({ ...base, [p.name]: value }), without, `${t.id}.${p.name} changed nothing`);
+      }
+    }
+  });
+});
+
 // ── Injected fixture templates ───────────────────────────────────────────────
 //
 // Defined here rather than shipped: a key-based connector we have no key for
