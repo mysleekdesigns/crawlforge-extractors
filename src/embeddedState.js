@@ -12,6 +12,17 @@
  * and avoids a second full parse of a multi-megabyte document.
  */
 
+import { parseFlightRows, resolveFlightRows, flightDataRows } from './flight.js';
+import { evaluateLiteralSource } from './jsLiteral.js';
+import { decodeNuxtData, readSvelteKitData } from './frameworkData.js';
+import {
+  readInertiaPage,
+  isInertiaPageScript,
+  readShopify,
+  isShopifyProductJsonScript,
+  readJsonAttributes
+} from './carriers.js';
+
 /**
  * Global variable assignments we look for, in the order they are reported.
  * Each is matched with an optional window./self./globalThis. prefix.
@@ -31,7 +42,19 @@ const STATE_VARIABLES = [
   // nytimes.com ships its whole front page as window.__preloadedData; with
   // only the four names above, a 1.1 MB page surfaced nothing but its
   // <script type="application/json"> blocks (R15, 2026-09-04).
-  { name: 'preloaded_data', variable: '__preloadedData' }
+  { name: 'preloaded_data', variable: '__preloadedData' },
+  // YouTube watch pages declare both with `var` (2026-10-03): the video's
+  // metadata (videoDetails, microformat) is in the player response, the
+  // watch-next page around it in ytInitialData.
+  { name: 'yt_initial_data', variable: 'ytInitialData' },
+  { name: 'yt_initial_player_response', variable: 'ytInitialPlayerResponse' },
+  { name: 'remix_context', variable: '__remixContext' },
+  { name: 'tgt_data', variable: '__TGT_DATA__' },
+  { name: 'pws_data', variable: '__PWS_DATA__' },
+  { name: 'server_data', variable: '__SERVER_DATA__' },
+  { name: 'app_state', variable: '__APP_STATE__' },
+  { name: 'state', variable: '__STATE__' },
+  { name: 'global_data', variable: '__data__' }
 ];
 
 // Script bodies cannot contain a literal "</script", so a non-greedy match is
@@ -150,72 +173,6 @@ function readBracketedLiteral(text, start) {
 }
 
 /**
- * Split a concatenated RSC flight stream into its rows.
- *
- * The stream is a sequence of `<hexId>:<payload>\n` rows. Three payload shapes
- * matter:
- *   - `T<hexByteLength>,` — a length-prefixed text blob. The length is in
- *     UTF-8 BYTES and INCLUDES the row's terminating newline, so the cursor
- *     advances exactly that many bytes and no further. (Advancing one extra
- *     character for a newline silently eats the first hex digit of the next
- *     row id, turning row "14" into row "4" and overwriting an unrelated row —
- *     verified against the live Healthgrades capture, where it produced seven
- *     colliding ids.)
- *   - `I[...]` / `HL[...]` — module and hint references. Not JSON; kept as the
- *     raw string so the caller can still see which components a page loads.
- *   - anything else — JSON, parsed.
- *
- * @param {string} stream
- * @returns {Record<string, unknown>} row id -> value
- */
-function parseFlightRows(stream) {
-  const rows = {};
-  let cursor = 0;
-
-  while (cursor < stream.length) {
-    const newline = stream.indexOf('\n', cursor);
-    const lineEnd = newline === -1 ? stream.length : newline;
-    const header = stream.slice(cursor, lineEnd).match(/^([0-9a-f]+):/i);
-    if (!header) {
-      // Not a row start: a chunk boundary landed mid-row, or the stream was
-      // truncated. Resync on the next line rather than giving up.
-      cursor = lineEnd + 1;
-      continue;
-    }
-
-    const id = header[1];
-    const payloadStart = cursor + header[0].length;
-    const payload = stream.slice(payloadStart, lineEnd);
-
-    const textRow = payload.match(/^T([0-9a-f]+),/i);
-    if (textRow) {
-      const blobStart = payloadStart + textRow[0].length;
-      const byteLen = parseInt(textRow[1], 16);
-      // Decode only up to byteLen bytes. Slicing the whole remaining stream on
-      // every text row makes this O(N) per row -> O(N^2) for an
-      // attacker-controlled stream of many small text rows. byteLen bytes span
-      // at most byteLen characters, so bounding the slice to that many chars
-      // keeps the work linear and yields the identical decoded blob.
-      const text = Buffer.from(stream.slice(blobStart, blobStart + byteLen), 'utf8')
-        .subarray(0, byteLen)
-        .toString('utf8');
-      rows[id] = text;
-      cursor = blobStart + text.length;
-      continue;
-    }
-
-    try {
-      rows[id] = JSON.parse(payload);
-    } catch {
-      rows[id] = payload;
-    }
-    cursor = lineEnd + 1;
-  }
-
-  return rows;
-}
-
-/**
  * Collect every `self.__next_f.push([1,"…"])` chunk in document order and
  * concatenate them into the flight stream they encode.
  * @param {string} html
@@ -264,12 +221,42 @@ export function extractApolloTransport(html) {
 const serializedBytes = (value) => Buffer.byteLength(JSON.stringify(value) ?? '');
 
 /**
+ * Read the value assigned at `start`: a JSON literal (healing bare
+ * `undefined`), else a JavaScript literal — unquoted keys, single quotes, the
+ * single-return IIFE Nuxt 2 and devalue emit — evaluated statically by
+ * jsLiteral.js, never run. Only an object or array counts as state.
+ * @param {string} html
+ * @param {number} start
+ * @returns {{ parsed: unknown, healed: number, evaluated: boolean }}
+ */
+function readAssignedValue(html, start) {
+  const literal = readBracketedLiteral(html, start);
+  if (literal !== null) {
+    // nytimes.com's __preloadedData is JSON except for bare `undefined`
+    // values (81 of them on the front page, 2026-09-04) — the same shape
+    // the Apollo transport heals, so heal it the same way.
+    const { parsed, healed } = parseJsonHealingUndefined(literal);
+    if (parsed !== undefined) return { parsed, healed, evaluated: false };
+  }
+  // Bounded to the enclosing script body: past it, acorn would read the
+  // closing "</script>" as a less-than and a regex.
+  const scriptEnd = html.indexOf('</script', start);
+  const result = evaluateLiteralSource(html.slice(start, scriptEnd === -1 ? undefined : scriptEnd));
+  if (result.ok && result.value !== null && typeof result.value === 'object') {
+    return { parsed: result.value, healed: 0, evaluated: true };
+  }
+  return { parsed: undefined, healed: 0, evaluated: false };
+}
+
+/**
  * Extract every embedded state payload a page carries.
  *
  * @param {string} rawHtml raw HTML — NOT a script-stripped document
+ * @param {{ raw?: boolean }} [options] raw: also keep the undecoded
+ *   __NUXT_DATA__ block in json_scripts, next to the decoded nuxt_data
  * @returns {{ data: Record<string, unknown>, found: Array<{name: string, variable: string, bytes: number, note?: string}>, warnings: string[] }}
  */
-export function extractEmbeddedState(rawHtml) {
+export function extractEmbeddedState(rawHtml, { raw = false } = {}) {
   const data = {};
   const found = [];
   const warnings = [];
@@ -285,7 +272,9 @@ export function extractEmbeddedState(rawHtml) {
   while ((script = SCRIPT_RE.exec(html)) !== null) {
     const [, attrs, body] = script;
     const type = (attr(attrs, 'type') || '').toLowerCase();
-    if (type !== 'application/json') continue;
+    if (type !== 'application/json' && type !== 'text/json') continue;
+    // Read by carriers.js and reported as inertia_page / shopify below.
+    if (isInertiaPageScript(attrs) || isShopifyProductJsonScript(attrs)) continue;
 
     const id = attr(attrs, 'id');
     let parsed;
@@ -293,7 +282,7 @@ export function extractEmbeddedState(rawHtml) {
       parsed = JSON.parse(body);
     } catch {
       warnings.push(
-        `A <script type="application/json"${id ? ` id="${id}"` : ''}> block is not valid JSON; skipped.`
+        `A <script type="${type}"${id ? ` id="${id}"` : ''}> block is not valid JSON; skipped.`
       );
       continue;
     }
@@ -309,6 +298,23 @@ export function extractEmbeddedState(rawHtml) {
         variable: '__NEXT_DATA__',
         bytes: serializedBytes(parsed)
       });
+    } else if ((id === '__NUXT_DATA__' || attr(attrs, 'data-nuxt-data') !== null) && data.nuxt_data === undefined) {
+      // Nuxt 3 ships its payload as devalue's flat array, every value an
+      // index into it — unreadable until decoded.
+      const decoded = decodeNuxtData(parsed);
+      warnings.push(...decoded.warnings);
+      if (decoded.value === null) {
+        jsonScripts.push({ id: id || null, data: parsed });
+        continue;
+      }
+      data.nuxt_data = decoded.value;
+      found.push({
+        name: 'nuxt_data',
+        variable: '__NUXT_DATA__',
+        bytes: serializedBytes(decoded.value),
+        note: 'Nuxt 3 devalue payload, decoded; raw:true also keeps the undecoded array in json_scripts'
+      });
+      if (raw) jsonScripts.push({ id: id || null, data: parsed });
     } else {
       jsonScripts.push({ id: id || null, data: parsed });
     }
@@ -316,14 +322,23 @@ export function extractEmbeddedState(rawHtml) {
 
   const flight = readFlightStream(html);
   if (flight.chunks > 0) {
-    const rows = parseFlightRows(flight.stream);
+    const resolved = resolveFlightRows(parseFlightRows(flight.stream));
+    const rows = resolved.rows;
     data.next_f = rows;
-    found.push({
-      name: 'next_f',
-      variable: 'self.__next_f',
-      bytes: serializedBytes(rows),
-      note: `${flight.chunks} RSC flight chunks concatenated into ${Object.keys(rows).length} rows, keyed by row id`
-    });
+    let note = `${flight.chunks} RSC flight chunks concatenated into ${Object.keys(rows).length} rows, keyed by row id; ${resolved.resolved} "$<id>" reference(s) between rows resolved in place`;
+    if (resolved.overBudget > 0) note += `, ${resolved.overBudget} left as strings to keep the payload under twice its size`;
+    found.push({ name: 'next_f', variable: 'self.__next_f', bytes: serializedBytes(rows), note });
+
+    const dataRows = flightDataRows(rows);
+    if (dataRows.length > 0) {
+      data.data_rows = dataRows;
+      found.push({
+        name: 'data_rows',
+        variable: 'self.__next_f',
+        bytes: serializedBytes(dataRows),
+        note: `index of the ${dataRows.length} next_f row(s) carrying data rather than markup, largest first; read one with path "next_f.<id>"`
+      });
+    }
   }
 
   const apolloPushes = extractApolloTransport(html);
@@ -339,32 +354,31 @@ export function extractEmbeddedState(rawHtml) {
 
   for (const { name, variable } of STATE_VARIABLES) {
     if (data[name] !== undefined) continue;
-    // Dot or bracket notation on window/self/globalThis, or a bare/var
-    // assignment; \b keeps MY__INITIAL_STATE__ from matching __INITIAL_STATE__.
-    const assignment = html.match(
-      new RegExp(
-        `(?:(?:window|self|globalThis)\\s*\\[\\s*(['"])${variable}\\1\\s*\\]|(?:(?:window|self|globalThis)\\.)?\\b${variable})\\s*=\\s*`
-      )
+    // Dot or bracket notation on window/self/globalThis, or a bare or
+    // var/let/const assignment; \b keeps MY__INITIAL_STATE__ from matching
+    // __INITIAL_STATE__ and (?!=) skips comparisons. A page can test a
+    // variable before it assigns it, so every match is tried in order.
+    const assignmentRe = new RegExp(
+      `(?:(?:window|self|globalThis)\\s*\\[\\s*(['"])${variable}\\1\\s*\\]|(?:(?:window|self|globalThis)\\.)?\\b${variable})\\s*=(?!=)\\s*`,
+      'g'
     );
-    if (!assignment) continue;
-
-    const valueStart = assignment.index + assignment[0].length;
-    const literal = readBracketedLiteral(html, valueStart);
-    let parsed;
-    let healed = 0;
-    if (literal !== null) {
-      // nytimes.com's __preloadedData is JSON except for bare `undefined`
-      // values (81 of them on the front page, 2026-09-04) — the same shape
-      // the Apollo transport heals, so heal it the same way.
-      ({ parsed, healed } = parseJsonHealingUndefined(literal));
+    let present = false;
+    let value = { parsed: undefined };
+    let assignment;
+    while ((assignment = assignmentRe.exec(html)) !== null) {
+      present = true;
+      value = readAssignedValue(html, assignment.index + assignment[0].length);
+      if (value.parsed !== undefined) break;
     }
+    if (!present) continue;
 
+    const { parsed, healed, evaluated } = value;
     if (parsed === undefined) {
-      // Nuxt 2 wraps its payload in an IIFE, and Nuxt 3 emits a bare JS object
-      // literal with unquoted keys. Neither is JSON and neither is worth
-      // eval()ing — say so instead of reporting a source we did not read.
+      // A function call, a reference to another variable, or an IIFE that
+      // does more than return a literal. None of it is worth eval()ing — say
+      // so instead of reporting a source we did not read.
       warnings.push(
-        `${variable} is present but its value is not a JSON literal (a JS object literal or function-wrapped payload); not parsed.`
+        `${variable} is present but its value is not a JSON or JavaScript literal (it calls code or reads other variables); not parsed.`
       );
       continue;
     }
@@ -381,7 +395,45 @@ export function extractEmbeddedState(rawHtml) {
     data[name] = parsed;
     const entry = { name, variable, bytes: serializedBytes(parsed) };
     if (healed > 0) entry.note = `${healed} bare undefined value(s) read as null`;
+    if (evaluated) entry.note = 'read as a JavaScript literal (evaluated statically, no code run)';
     found.push(entry);
+  }
+
+  const svelteKit = readSvelteKitData(html);
+  if (svelteKit) {
+    warnings.push(...svelteKit.warnings);
+    if (svelteKit.value !== null && svelteKit.value !== undefined) {
+      data.sveltekit_data = svelteKit.value;
+      found.push({
+        name: 'sveltekit_data',
+        variable: 'kit.start(app, element, { data })',
+        bytes: serializedBytes(svelteKit.value),
+        note: 'one entry per route node, root layout first; read as a JavaScript literal'
+      });
+    }
+  }
+
+  const inertia = readInertiaPage(html);
+  if (inertia) {
+    warnings.push(...inertia.warnings);
+    if (inertia.value !== null) {
+      data.inertia_page = inertia.value;
+      found.push({ name: 'inertia_page', variable: '[data-page]', bytes: serializedBytes(inertia.value) });
+    }
+  }
+
+  const shopify = readShopify(html);
+  if (shopify) {
+    warnings.push(...shopify.warnings);
+    if (Object.keys(shopify.value).length > 0) {
+      data.shopify = shopify.value;
+      found.push({
+        name: 'shopify',
+        variable: 'ShopifyAnalytics.meta, script[data-product-json]',
+        bytes: serializedBytes(shopify.value),
+        note: 'meta prices are integers in minor units (10500 = 105.00 in meta.currency)'
+      });
+    }
   }
 
   if (jsonScripts.length > 0) {
@@ -391,6 +443,17 @@ export function extractEmbeddedState(rawHtml) {
       variable: 'script[type="application/json"]',
       bytes: serializedBytes(jsonScripts),
       note: `${jsonScripts.length} block(s), each { id, data }`
+    });
+  }
+
+  const jsonAttributes = readJsonAttributes(html);
+  if (jsonAttributes.length > 0) {
+    data.json_attributes = jsonAttributes;
+    found.push({
+      name: 'json_attributes',
+      variable: 'data-* attributes',
+      bytes: serializedBytes(jsonAttributes),
+      note: `${jsonAttributes.length} attribute(s) holding a JSON object of 2 KB or more, each { tag, attribute, id, data }`
     });
   }
 

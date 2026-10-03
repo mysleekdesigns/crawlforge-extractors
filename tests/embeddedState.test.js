@@ -21,6 +21,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { extractEmbeddedState } from '../src/embeddedState.js';
+import { findJsonPaths } from '../src/jsonFind.js';
+import { selectJsonPath } from '../src/jsonPath.js';
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), './fixtures/embedded-state');
 const fixture = (name) => readFileSync(join(FIXTURES, name), 'utf8');
@@ -144,10 +146,18 @@ describe('Nuxt (elk.zone)', () => {
     assert.match(warnings[0], /__NUXT__ is present but assigned an empty object/);
   });
 
-  test('the real payload comes back as a json_scripts block, with its id', () => {
-    assert.equal(data.json_scripts.length, 1);
-    assert.equal(data.json_scripts[0].id, '__NUXT_DATA__');
-    assert.equal(data.json_scripts[0].data[0][0], 'ShallowReactive');
+  test('the real payload is decoded into nuxt_data, not left as a devalue array', () => {
+    assert.equal(byName(found, 'nuxt_data').variable, '__NUXT_DATA__');
+    assert.deepEqual(data.nuxt_data.state['$scolor-mode'].preference, 'system');
+    assert.equal(data.json_scripts, undefined);
+  });
+
+  test('raw:true also keeps the undecoded block in json_scripts, with its id', () => {
+    const { data: rawData } = extractEmbeddedState(fixture('elk-zone-nuxt.html'), { raw: true });
+    assert.equal(rawData.json_scripts.length, 1);
+    assert.equal(rawData.json_scripts[0].id, '__NUXT_DATA__');
+    assert.equal(rawData.json_scripts[0].data[0][0], 'ShallowReactive');
+    assert.equal(typeof rawData.nuxt_data.state, 'object');
   });
 });
 
@@ -181,13 +191,13 @@ describe('the shared assignment reader', () => {
     assert.deepEqual(extractEmbeddedState(wrap('var __INITIAL_STATE__ = {"a":2}')).data.initial_state, { a: 2 });
   });
 
-  test('a value that is not JSON is reported as unparsed, never guessed at', () => {
+  test('a value that is not a literal is reported as unparsed, never guessed at', () => {
     const { data, found, warnings } = extractEmbeddedState(
-      wrap('window.__NUXT__=(function(a){return {x:a}}(1))')
+      wrap('window.__NUXT__=buildState(window.config)')
     );
     assert.equal(data.nuxt, undefined);
     assert.equal(found.length, 0);
-    assert.match(warnings[0], /not a JSON literal/);
+    assert.match(warnings[0], /not a JSON or JavaScript literal/);
   });
 
   test('braces inside strings do not end the payload early', () => {
@@ -296,5 +306,92 @@ describe('Apollo streaming-SSR transport (Product Hunt)', () => {
     const html = page('{broken') + page('{"ok":true}');
     const { data } = extractEmbeddedState(html);
     assert.deepEqual(data.apollo_ssr_transport, [{ ok: true }]);
+  });
+});
+
+// Phase 4 (2026-10-03): each source end to end through extractEmbeddedState,
+// on the live captures the module tests use. The module tests cover the edge
+// cases; these prove the wiring.
+describe('Phase 4 sources, end to end', () => {
+  const read = (name) => extractEmbeddedState(fixture(name));
+
+  test('nuxt.com: __NUXT_DATA__ comes back decoded, state as objects', () => {
+    const { data, found } = read('nuxt-com-home.html');
+    assert.ok(byName(found, 'nuxt_data'));
+    assert.equal(typeof data.nuxt_data.state['$scolor-mode'], 'object');
+    assert.ok(!Array.isArray(data.nuxt_data.state));
+  });
+
+  test('svelte.dev: the kit.start data array is found', () => {
+    const { data, found } = read('svelte-dev-blog.html');
+    assert.ok(byName(found, 'sveltekit_data'));
+    assert.ok(data.sveltekit_data.length > 0);
+  });
+
+  test('youtube.com: both var-declared globals, videoDetails in the player response', () => {
+    const { data, found } = read('youtube-watch.html');
+    assert.ok(byName(found, 'yt_initial_data'));
+    assert.equal(data.yt_initial_player_response.videoDetails.videoId, 'dQw4w9WgXcQ');
+  });
+
+  test('allbirds.com: ShopifyAnalytics.meta carries every variant with a price', () => {
+    const { data } = read('allbirds-product.html');
+    const variants = data.shopify.meta.product.variants;
+    assert.ok(variants.length > 1);
+    assert.ok(variants.every((v) => Number.isInteger(v.price)));
+    assert.equal(data.shopify.meta.currency, 'USD');
+  });
+
+  test('Inertia: the script carrier is inertia_page, not also a json_scripts block', () => {
+    const { data } = read('inertia-laracasts-script.html');
+    assert.equal(typeof data.inertia_page.component, 'string');
+    assert.equal(data.json_scripts, undefined);
+    assert.equal(typeof read('inertia-demo-data-page.html').data.inertia_page.props, 'object');
+  });
+
+  test('healthgrades: find "specialty" returns a path that resolves in one more call', () => {
+    const { data } = read('healthgrades-rsc.html');
+    const { matches } = findJsonPaths(data, 'specialty');
+    assert.ok(matches.length > 0);
+    assert.equal(selectJsonPath(data, matches[0].path), 'Cardiology');
+  });
+
+  test('healthgrades: data_rows indexes the rows that are not markup, largest first', () => {
+    const { data, found } = read('healthgrades-rsc.html');
+    assert.ok(byName(found, 'data_rows'));
+    assert.deepEqual(data.data_rows.map((row) => row.id), ['0', '9']);
+    assert.ok(selectJsonPath(data, `next_f.${data.data_rows[1].id}.metadata`));
+  });
+});
+
+describe('Phase 4 assignment reader', () => {
+  const wrap = (script) => `<html><body><script>${script}</script></body></html>`;
+
+  test('a JavaScript literal (unquoted keys, single quotes) is read and says so', () => {
+    const { data, found } = extractEmbeddedState(wrap("window.__INITIAL_STATE__={a:'x',b:[1,-2]}"));
+    assert.deepEqual(data.initial_state, { a: 'x', b: [1, -2] });
+    assert.match(byName(found, 'initial_state').note, /JavaScript literal/);
+  });
+
+  test('the Nuxt 2 single-return IIFE is read without running it', () => {
+    const { data } = extractEmbeddedState(wrap('window.__NUXT__=(function(a,b){return {x:a,y:[b]}}(1,"z"));'));
+    assert.deepEqual(data.nuxt, { x: 1, y: ['z'] });
+  });
+
+  test('a comparison before the assignment is skipped, the assignment read', () => {
+    const { data } = extractEmbeddedState(
+      wrap('if (window.ytInitialData == null) {} var ytInitialData = {"a":1};')
+    );
+    assert.deepEqual(data.yt_initial_data, { a: 1 });
+  });
+
+  test('let/const declarations are read', () => {
+    assert.deepEqual(extractEmbeddedState(wrap('const __APP_STATE__ = {"a":1}')).data.app_state, { a: 1 });
+    assert.deepEqual(extractEmbeddedState(wrap('let __remixContext = {"b":2}')).data.remix_context, { b: 2 });
+  });
+
+  test('a <script type="text/json"> block is a json_scripts block', () => {
+    const { data } = extractEmbeddedState('<script type="text/json" id="s">{"a":1}</script>');
+    assert.deepEqual(data.json_scripts, [{ id: 's', data: { a: 1 } }]);
   });
 });
