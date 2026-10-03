@@ -39,7 +39,8 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     ['perimeterx', /PerimeterX \/ HUMAN challenge element/],
     ['akamai', /title "Access Denied"/],
     ['vercel', /title "Vercel Security Checkpoint"/],
-    ['aws-waf', /AWS WAF challenge interstitial on a \d+-character page/]
+    ['aws-waf', /AWS WAF challenge interstitial on a \d+-character page/],
+    ['f5', /title "Request Rejected"/]
   ]) {
     test(`${vendor}`, () => {
       const hit = detectChallengePage(page(vendor));
@@ -72,6 +73,19 @@ describe('detectChallengePage — one fixture per vendor, all served with HTTP 2
     assert.equal(detectChallengePage({ title: 'Home', html, text: PROSE }), null);
   });
 
+  test('an F5 page whose title was customised is still named by its sentence', () => {
+    const html = '<title>Acme</title><body>The requested URL was rejected. Please consult with your administrator.<br><br>Your support ID is: 1</body>';
+    const hit = detectChallengePage({ title: 'Acme', html, text: 'The requested URL was rejected. Please consult with your administrator. Your support ID is: 1' });
+    assert.equal(hit?.vendor, 'f5');
+    assert.match(hit.evidence, /F5 "Request Rejected" blocking page on a \d+-character page/);
+  });
+
+  test('an article that quotes the F5 sentence is not a block', () => {
+    const quote = 'The requested URL was rejected. Please consult with your administrator. ';
+    const text = quote + PROSE;
+    assert.equal(detectChallengePage({ title: 'Why does my F5 say Request Rejected?', html: `<p>${text}</p>`, text }), null);
+  });
+
   test('an ordinary page is null', () => {
     assert.equal(detectChallengePage({ title: 'Web form', html: '<h1>Web form</h1>', text: 'Web form Text input' }), null);
   });
@@ -90,11 +104,18 @@ describe('documentVerdict', () => {
   });
 
   test('every vendor fixture fails the verdict with its vendor', () => {
-    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel', 'aws-waf']) {
+    for (const vendor of ['cloudflare', 'amazon', 'datadome', 'perimeterx', 'akamai', 'vercel', 'aws-waf', 'f5']) {
       const v = documentVerdict(page(vendor));
       assert.equal(v.success, false, vendor);
       assert.equal(v.blocked?.vendor, vendor);
     }
+  });
+
+  test("walmart's HTTP 444 F5 page is blocked by f5 and keeps its status", () => {
+    const v = documentVerdict({ ...page('f5', 'https://www.walmart.com/ip/5689919121'), status: 444 }, { fetcher: 'a plain fetch' });
+    assert.equal(v.success, false);
+    assert.equal(v.status, 444);
+    assert.deepEqual(v.blocked, { vendor: 'f5', evidence: 'title "Request Rejected"' });
   });
 
   test('an HTTP error page names the status and keeps the title', () => {
