@@ -1,8 +1,8 @@
 /**
  * blockedPage.js — decide whether a fetched document is the page or a wall.
  *
- * Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel and AWS WAF answer a
- * blocked request with HTTP 200 and a page of their own: a title, some prose
+ * Cloudflare, Amazon, DataDome, PerimeterX, Akamai, Vercel, AWS WAF and F5 answer
+ * a blocked request with a page of their own, often under HTTP 200: a title, some prose
  * and a challenge script. Reported as a successful scrape, that page hides
  * the block — producthunt.com came back "success:true, title: Just a
  * moment..." for three regression rounds (R10 Q1 → R15, 2026-09-04). The
@@ -68,6 +68,18 @@ const CHALLENGES = [
     vendor: 'aws-waf',
     markers: /window\.gokuProps\s*=/,
     evidence: 'an AWS WAF challenge interstitial'
+  },
+  {
+    // F5 BIG-IP ASM / Advanced WAF's default blocking page: the title
+    // "Request Rejected", one sentence and a support ID, about 250 bytes.
+    // walmart.com sent it with HTTP 444 to a plain fetch (2026-10-03). Its
+    // `server-timing: ak_p` header named Akamai, but walmart's normal 200s
+    // carry the same header (it is the CDN), so the page, not the header,
+    // says who refused the request.
+    vendor: 'f5',
+    title: /^request rejected$/i,
+    markers: /the requested url was rejected\.?\s*please consult with your administrator/i,
+    evidence: 'an F5 "Request Rejected" blocking page'
   }
 ];
 
