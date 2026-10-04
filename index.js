@@ -43,3 +43,7 @@ export { redactPii, REGEX_ENTITIES, MODEL_ONLY_ENTITIES, DEFAULT_REPLACE_STYLE }
 export { flattenText } from './src/pageText.js';
 
 export { extractLinkRecords } from './src/links.js';
+
+export { gridTables } from './src/tables.js';
+
+export { absoluteUrls } from './src/urls.js';
