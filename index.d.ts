@@ -511,3 +511,20 @@ export declare function extractLinkRecords(
   $: CheerioDoc,
   options?: { pageUrl?: string; baseUrl?: string; includeAnchors?: boolean; dedupe?: boolean }
 ): LinkRecord[];
+
+/**
+ * Rewrite each data table (one with a header row) in place as a plain grid: one
+ * header row in a `<thead>`, every row as wide as the widest, each cell on one
+ * line — the shape a GFM pipe table needs. Stacked header cells over a column
+ * are joined by a space ("Height m"); a rowspan cell repeats on each row it
+ * covers, a colspan cell fills its first column and leaves the rest empty.
+ * Tables with no header row (layout tables) and nested tables are left as they are.
+ */
+export declare function gridTables($: CheerioDoc): void;
+
+/**
+ * Resolve every `<img src>` and `<a href>` in place against the document's
+ * `<base href>` (resolved against `pageUrl`), else `pageUrl`. `#anchor` links
+ * and unparseable values stay as written; schemes are not filtered.
+ */
+export declare function absoluteUrls($: CheerioDoc, pageUrl: string): void;

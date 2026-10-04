@@ -39,3 +39,26 @@ export function safeHref(url) {
   if (!/^[a-z][a-z0-9+.-]*:/i.test(cleaned)) return cleaned; // relative / protocol-relative
   return /^https?:\/\//i.test(cleaned) ? cleaned : null; // absolute: http(s) only
 }
+
+/**
+ * Resolve image and link URLs against the page, in place, before a markdown
+ * converter reads the document. Readability resolves the article it keeps, but
+ * a selector's matches skip it, so Wikipedia's "//upload.wikimedia.org/..."
+ * images stayed protocol-relative (R24 3.12). The base is the document's
+ * `<base href>` resolved against `pageUrl`, else `pageUrl`. In-page "#anchor"
+ * links and values that do not parse stay as written. Schemes are not
+ * filtered: a value keeps the scheme it was written with.
+ *
+ * @param {import('cheerio').CheerioAPI} $
+ * @param {string} pageUrl
+ */
+export function absoluteUrls($, pageUrl) {
+  let base = pageUrl;
+  try { base = new URL($('base[href]').attr('href') ?? '', pageUrl).href; } catch { /* page URL */ }
+  $('img[src], a[href]').each((_, el) => {
+    const attr = el.name === 'img' ? 'src' : 'href';
+    const value = $(el).attr(attr);
+    if (value.startsWith('#')) return;
+    try { $(el).attr(attr, new URL(value, base).href); } catch { /* left as written */ }
+  });
+}

@@ -278,6 +278,25 @@ URL; `mailto:`, `tel:` and `javascript:` links are `type: "other"`, and only
 deduplicated on the URL without fragment or trailing slash; a
 `#fragment`-only href is skipped unless `includeAnchors` is set.
 
+### Tables and URLs for markdown
+
+`gridTables` and `absoluteUrls` prepare a document for a markdown converter
+(Turndown) on both surfaces, so `extract_text` and `scrape` markdown make the
+same tables and links.
+
+```js
+import { load } from 'cheerio';
+import { gridTables, absoluteUrls } from 'crawlforge-extractors';
+
+const $ = load(html);
+absoluteUrls($, finalUrl);   // <img src="//upload…"> → "https://upload…"
+gridTables($);               // two-level headers joined ("Height m"), rowspans repeated
+turndown.turndown($.html());
+```
+
+Both edit the document in place. A table with no header row (a layout table)
+or a nested table is left as it is.
+
 ## Templates
 
 **Pages and products.** `shopify-product` · `shopify-collection` ·
