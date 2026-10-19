@@ -427,3 +427,41 @@ describe('Wikipedia: reference-list noise (R25 1.4)', () => {
     assert.ok(firstReference === -1 || firstReference >= 5, `a reference ranked #${firstReference + 1}`);
   });
 });
+
+// R25 1.4, second pass: the page never says "created". Its answer sentences
+// say "conceived" and "designer", and the question's "it" and "was" were
+// matching unrelated sentences.
+describe('question words, synonyms and answer types (R25 1.4)', () => {
+  const markdown = fixture('wikipedia-python');
+  const QUESTION = 'Who created Python and when was it first released?';
+
+  test('the evidence names Guido van Rossum in the top 5', () => {
+    const top = rankUnits(segmentUnits(markdown), QUESTION, { maxUnits: 5 });
+    assert.ok(top.some((unit) => unit.text.includes('Guido van Rossum')), top.map((unit) => unit.text).join('\n'));
+  });
+
+  test('function words in the question do not match on their own', () => {
+    const units = segmentUnits('It was a quiet week and who knew when it would end.\n\nPython was first released in 1991.');
+    const ranked = rankUnits(units, QUESTION);
+    assert.equal(ranked.length, 1);
+    assert.match(ranked[0].text, /^Python/);
+  });
+
+  test('a query made only of function words still matches', () => {
+    assert.equal(rankUnits(segmentUnits('To be or not to be.'), 'to be').length, 1);
+  });
+
+  test('a synonym matches at half weight, so a direct match ranks first', () => {
+    const units = segmentUnits('The language was designed in 1989.\n\nThe language was created in 1989.');
+    const ranked = rankUnits(units, 'language created');
+    assert.equal(ranked.length, 2);
+    assert.match(ranked[0].text, /created/);
+    assert.ok(ranked[1].score < ranked[0].score);
+  });
+
+  test('a who question prefers the unit holding a name, a when question the one holding a date', () => {
+    const units = segmentUnits('Python was designed at CWI.\n\nPython was designed by Guido van Rossum.\n\nPython was designed in 1989.');
+    assert.match(rankUnits(units, 'who designed python')[0].text, /Guido/);
+    assert.match(rankUnits(units, 'when was python designed')[0].text, /1989/);
+  });
+});
