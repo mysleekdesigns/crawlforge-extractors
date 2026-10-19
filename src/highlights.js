@@ -295,6 +295,44 @@ const MIN_DOC_LENGTH = 4;
 const REFERENCE_WEIGHT = 0.25;
 const REFERENCE_HEADING = /^(?:(?:references?|notes?|citations?|sources?|footnotes?|bibliography|works cited)(?:\s*(?:,|&|and)\s*|\s*$))+$/i;
 const CITE_BACKLINK = /\]\(#cite_ref/;
+// A question's function words are not what it is about. Scored as terms,
+// "it" and "was" put "It was designed as a successor to ABC" and an unrelated
+// "it was invented by people working on Dylan" in the top three for "Who
+// created Python and when was it first released?" (R25). A query made only of
+// these words keeps them, so it still matches something.
+const QUERY_STOPWORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'been', 'by', 'can', 'did', 'do', 'does', 'for', 'from',
+  'had', 'has', 'have', 'how', 'i', 'in', 'is', 'it', 'its', 'me', 'of', 'on', 'or', 'that', 'the',
+  'their', 'there', 'this', 'to', 'was', 'were', 'what', 'when', 'where', 'which', 'who', 'whom',
+  'whose', 'why', 'will', 'with', 'you', 'your'
+].map(stem));
+// Pages rarely say a thing was "created" or "released": Wikipedia says Python
+// was "conceived" by its "designer", and its infobox says "First appeared".
+// A query term in one of these groups also matches the group's other words,
+// at this fraction of their score, so a direct match still ranks first. The
+// groups stay small on purpose: every added word is a chance to match noise.
+const SYNONYM_GROUPS = [
+  ['create', 'creator', 'creation', 'design', 'designer', 'conceive', 'invent', 'inventor', 'develop',
+    'developer', 'found', 'founder', 'author', 'wrote', 'written'],
+  ['release', 'launch', 'publish', 'debut', 'appear', 'introduce', 'unveil']
+].map((group) => [...new Set(group.flatMap((word) => [word, `${word}d`, `${word}ed`]).map(stem))]);
+const SYNONYM_WEIGHT = 0.5;
+// The kind of answer a question asks for. "Who" wants a name and "when" a
+// date, so a unit that holds one is worth more than an equal match without:
+// "The designer of Python, Guido van Rossum" over "Python 2.7 is unsupported".
+// A name is two or more capitalised words, with a lowercase particle allowed
+// between them ("Guido van Rossum").
+const ANSWER_TYPE_BOOST = 1.3;
+const PERSON_NAME = /\b\p{Lu}\p{Ll}+(?:\s+(?:(?:van|von|de|der|den|da|di|du|le|la|bin|al)\s+)?\p{Lu}\p{Ll}+)+/u;
+const DATE = /\b(?:1[5-9]\d\d|20\d\d)s?\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
+
+/** The answer shapes a question asks for, as patterns a unit can hold. */
+function answerTypes(question) {
+  const types = [];
+  if (/\bwho(?:m|se)?\b/.test(question)) types.push(PERSON_NAME);
+  if (/\bwhen\b|\b(?:what|which) year\b/.test(question)) types.push(DATE);
+  return types;
+}
 
 // A markdown link or image: label, then a target that may hold escaped or
 // balanced parentheses ("ABC_\(programming_language\)") and a quoted title.
@@ -324,9 +362,11 @@ function isReference(unit) {
 /**
  * The units that answer a query, best first: BM25 over the units as the
  * corpus, with each unit inheriting its heading's terms at half weight, and a
- * phrase boost when a unit contains the whole query. Link targets and
- * citation markers are not scored, and an entry of a references-type list
- * keeps a quarter of its score. The input units are not touched; every
+ * phrase boost when a unit contains the whole query. The query's function
+ * words are not scored, a creation or release word also matches its synonyms
+ * at half weight, and a unit holding the name or date a who/when question asks
+ * for scores higher. Link targets and citation markers are not scored, and an
+ * entry of a references-type list keeps a quarter of its score. The input units are not touched; every
  * returned unit is a new object.
  *
  * @template {{ text: string, heading?: string | null, offset: number }} U
@@ -339,8 +379,15 @@ export function rankUnits(units, query, { maxUnits = 10, minScore = 0 } = {}) {
   if (!Array.isArray(units) || units.length === 0 || typeof query !== 'string') return [];
   const phrase = query.trim().toLowerCase();
   if (phrase === '') return [];
-  const terms = [...new Set(tokenize(phrase))];
+  const allTerms = [...new Set(tokenize(phrase))];
+  const contentTerms = allTerms.filter((term) => !QUERY_STOPWORDS.has(term));
+  const terms = contentTerms.length > 0 ? contentTerms : allTerms;
   if (terms.length === 0) return [];
+  const synonyms = new Map(terms.map((term) => [
+    term,
+    (SYNONYM_GROUPS.find((group) => group.includes(term)) ?? []).filter((other) => other !== term)
+  ]));
+  const types = answerTypes(phrase);
 
   const limit = Number.isFinite(maxUnits) ? Math.max(1, Math.floor(maxUnits)) : 10;
   const floor = Number.isFinite(minScore) ? minScore : 0;
@@ -363,7 +410,7 @@ export function rankUnits(units, query, { maxUnits = 10, minScore = 0 } = {}) {
   });
   const n = docs.length;
   const avgdl = docs.reduce((sum, doc) => sum + doc.length, 0) / n || 1;
-  const idf = new Map(terms.map((term) => {
+  const idf = new Map([...new Set([...terms, ...[...synonyms.values()].flat()])].map((term) => {
     const df = docs.reduce((count, doc) => count + (doc.own.has(term) ? 1 : 0), 0);
     return [term, Math.log(1 + (n - df + 0.5) / (df + 0.5))];
   }));
@@ -371,13 +418,17 @@ export function rankUnits(units, query, { maxUnits = 10, minScore = 0 } = {}) {
   const ranked = [];
   units.forEach((unit, index) => {
     const doc = docs[index];
+    const termScore = (term) => {
+      const tf = doc.counts.get(term);
+      return tf ? idf.get(term) * (tf * (K1 + 1)) / (tf + K1 * (1 - B + B * doc.length / avgdl)) : 0;
+    };
     let score = 0;
     for (const term of terms) {
-      const tf = doc.counts.get(term);
-      if (!tf) continue;
-      score += idf.get(term) * (tf * (K1 + 1)) / (tf + K1 * (1 - B + B * doc.length / avgdl));
+      const viaSynonym = Math.max(0, ...synonyms.get(term).map(termScore)) * SYNONYM_WEIGHT;
+      score += Math.max(termScore(term), viaSynonym);
     }
     if (score === 0) return;
+    for (const type of types) if (type.test(doc.visible)) score *= ANSWER_TYPE_BOOST;
     if (doc.visible.toLowerCase().includes(phrase)) score *= PHRASE_BOOST;
     if (isReference(unit)) score *= REFERENCE_WEIGHT;
     // Round before the threshold, so a score handed back as minScore means
