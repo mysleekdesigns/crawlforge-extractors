@@ -23,10 +23,11 @@ export interface ScrapeTemplate {
    */
   targetPattern?: RegExp;
   /**
-   * Extract from the parsed page. Absent on templates that read a
-   * machine-readable endpoint instead — those define extractRaw.
+   * Extract from the parsed page; `url` is the URL the caller passed to run().
+   * Absent on templates that read a machine-readable endpoint instead — those
+   * define extractRaw.
    */
-  extract?: ($: CheerioDoc) => Record<string, unknown>;
+  extract?: ($: CheerioDoc, url: string) => Record<string, unknown>;
   /**
    * Rewrite the URL the caller should fetch. shopify-product uses this to read
    * /products/<handle>.json rather than the rendered page.

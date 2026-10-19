@@ -354,3 +354,76 @@ describe('rankUnits', () => {
     assert.equal(JSON.stringify(corpus), before);
   });
 });
+
+// R25 sweep, Phase 1.4. Condensed from the live markdown of
+// en.wikipedia.org/wiki/Python_(programming_language) as the MCP server's
+// scrape rendered it on 2026-10-19: the infobox, the lead and history
+// paragraphs, and four reference-list entries, every line verbatim. The
+// question below ranked the "Why was Python created in the first place?"
+// citation and its "Archived" line first, on the words of their URL slugs.
+describe('Wikipedia: reference-list noise (R25 1.4)', () => {
+  const markdown = fixture('wikipedia-python');
+  const units = segmentUnits(markdown);
+  const QUESTION = 'Who created Python and when was it first released?';
+  // Wikipedia puts no-break spaces before years and inside names.
+  const plain = (text) => text.replace(/\u00a0/g, ' ');
+
+  test('every unit is a verbatim slice of the markdown', () => {
+    assertSliceInvariant(markdown, units);
+  });
+
+  test('the history sentence answers the question, and no #cite_ref entry is in the top 5', () => {
+    const ranked = rankUnits(units, QUESTION, { maxUnits: 5 });
+    assert.match(plain(ranked[0].text), /^Van Rossum first released it in 1991 as Python 0\.9\.0\./);
+    for (const unit of ranked) assert.doesNotMatch(unit.text, /#cite_ref/);
+    assert.ok(!ranked.some((unit) => unit.text.startsWith('[Archived]')), 'an archive link ranked on its URL');
+  });
+
+  test('a citation marker after the stop ends the sentence, even after a version number', () => {
+    const texts = units.map((unit) => plain(unit.text));
+    assert.ok(texts.includes('Python implementation began in December 1989.[\\[42\\]](#cite_note-timeline-of-python-44)'));
+    assert.ok(texts.includes('Van Rossum first released it in 1991 as Python 0.9.0.[\\[42\\]](#cite_note-timeline-of-python-44)'));
+  });
+
+  test('link targets are not scored: words only in a URL do not match', () => {
+    // Without the page heading, whose "Python" every unit inherits.
+    const archived = units.filter((unit) => unit.text.startsWith('[Archived](')).map((unit) => ({ ...unit, heading: null }));
+    assert.ok(archived.length > 0);
+    assert.deepEqual(rankUnits(archived, 'why python created first place'), []);
+    // The label still counts.
+    assert.equal(rankUnits(archived, 'archived').length, archived.length);
+  });
+
+  test('a citation marker is not scored as its number', () => {
+    const cited = segmentUnits('Python is taught widely.[\\[41\\]](#cite_note-43)');
+    assert.deepEqual(rankUnits(cited, '41'), []);
+    assert.equal(rankUnits(cited, 'taught').length, 1);
+  });
+
+  test('a link around an image keeps the image label', () => {
+    const linked = segmentUnits('See [![Wikibooks logo](https://example.com/logo.svg)](https://example.com/File:Logo) here.');
+    assert.equal(rankUnits(linked, 'wikibooks logo').length, 1);
+    assert.deepEqual(rankUnits(linked, 'example file'), []);
+  });
+
+  test('units under a References, Notes, Citations or Sources heading keep a quarter of their score', () => {
+    const sentence = 'Python was first released in 1991.';
+    for (const heading of ['References', 'Notes', 'Citations', 'Sources', 'Notes and references', 'Footnotes']) {
+      const ranked = rankUnits(segmentUnits(`## ${heading}\n\n${sentence}\n\n## History\n\n${sentence}`), 'python first released');
+      assert.equal(ranked[0].heading, 'History', heading);
+      assert.ok(Math.abs(ranked[1].score - ranked[0].score / 4) < 0.01, `${heading}: ${ranked[1].score} vs ${ranked[0].score}`);
+    }
+    // A heading that only starts with one of those words is not a references list.
+    const ranked = rankUnits(segmentUnits(`### Reference implementation\n\n${sentence}\n\n## History\n\n${sentence}`), 'python first released');
+    assert.ok(ranked[1].score > ranked[0].score / 2, `${ranked[1].score} vs ${ranked[0].score}`);
+  });
+
+  test('with the page\'s real References heading restored, the reference entries rank last', () => {
+    const at = markdown.indexOf('1.  [](#cite_ref-1)');
+    assert.ok(at > 0);
+    const withHeading = `${markdown.slice(0, at)}## References\n\n${markdown.slice(at)}`;
+    const ranked = rankUnits(segmentUnits(withHeading), QUESTION);
+    const firstReference = ranked.findIndex((unit) => unit.heading === 'References');
+    assert.ok(firstReference === -1 || firstReference >= 5, `a reference ranked #${firstReference + 1}`);
+  });
+});

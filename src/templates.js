@@ -537,6 +537,15 @@ function githubCount(value) {
   return /^\d+$/.test(digits) ? Number.parseInt(digits, 10) : null;
 }
 
+/**
+ * The repository name from a github.com/<owner>/<repo>[/tree/…] URL, without
+ * a trailing ".git"; null when the URL has no repo segment.
+ */
+function githubRepoName(url) {
+  const repo = /^\/[^/]+\/([^/]+)/.exec(safeUrl(url)?.pathname || '');
+  return repo ? repo[1].replace(/\.git$/i, '') || null : null;
+}
+
 /** README excerpts are capped: the first paragraph of some READMEs is an essay. */
 const README_SUMMARY_MAX = 500;
 
@@ -811,10 +820,9 @@ export const TEMPLATES = [
       return repo ? `${parsed.origin}/${repo[1]}/${repo[2]}` : url;
     },
 
-    extract($) {
+    extract($, url) {
       const about = githubSidebarAbout($);
-      return {
-        name: text($, 'strong[itemprop="name"] a') || text($, '.repository-content h1'),
+      const facts = {
         // Like homepage: when the sidebar payload is present it is
         // authoritative, so a repo that set no description reports null
         // rather than GitHub's "Contribute to ..." boilerplate.
@@ -835,7 +843,8 @@ export const TEMPLATES = [
         // only fire on older server-rendered layouts; otherwise these two
         // stay null rather than guessing.
         language: text($, 'span[itemprop="programmingLanguage"]') || text($, '.d-inline-flex[class*="language"]'),
-        topics: list($, 'a.topic-tag, a[href^="/topics/"]'),
+        // The page links each topic twice (sidebar and mobile About).
+        topics: [...new Set(list($, 'a.topic-tag, a[href^="/topics/"]'))],
         // Never the repo's LICENSE *file* link — its text is the filename,
         // not the licence name.
         license: githubLicense(about?.repo?.license) || text($, '.octicon-law ~ span'),
@@ -843,9 +852,23 @@ export const TEMPLATES = [
         // When the sidebar payload is present it is authoritative: an empty
         // website means "no homepage", not "go scrape some external link".
         homepage: safeHref(about ? about.website : attr($, 'a[href][rel="noopener noreferrer"]', 'href')),
-        open_issues: githubCount(githubCounter($, '#issues-repo-tab-count') || text($, '.Counter[aria-label*="issue"]')),
+        // The React repo nav (R25) puts the count in the Issues tab's
+        // CounterLabel: exact up to 999, then rounded ("5k+"), which reads as
+        // null rather than as a number it is not.
+        open_issues: githubCount(
+          githubCounter($, '#issues-repo-tab-count') ||
+          text($, 'a[data-tab-item="issues"] [data-component="CounterLabel"]') ||
+          text($, '.Counter[aria-label*="issue"]')
+        ),
         readme_summary: githubReadmeSummary($)
       };
+      // From the URL: the logged-out page has no element that holds the repo
+      // name alone, and the old fallback ('.repository-content h1') matched
+      // the README's first heading instead (R25). Only alongside something
+      // read from the page, so an interstitial still fails run()'s
+      // every-field-empty check instead of passing on the URL alone.
+      const found = Object.values(facts).some((v) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0));
+      return { name: found ? githubRepoName(url) : null, ...facts };
     }
   },
 
@@ -1329,7 +1352,7 @@ export class TemplateRegistry {
 
     const data = template.extractRaw
       ? template.extractRaw(body, url)
-      : template.extract(load(body));
+      : template.extract(load(body), url);
 
     // A record with literally every field empty is not a page with no data —
     // it is a page the template's selectors all missed: an interstitial

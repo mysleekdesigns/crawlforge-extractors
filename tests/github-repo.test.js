@@ -102,9 +102,9 @@ describe('github-repo open issues from the tab counter', () => {
   });
 
   test('a "Not available" title is not mistaken for a count', async () => {
-    // The name element keeps the record non-empty — a page where every field
+    // The topic link keeps the record non-empty — a page where every field
     // extracts null now fails run()'s empty-record guard by design.
-    const html = '<strong itemprop="name"><a>expressjs/express</a></strong>' +
+    const html = '<a href="/topics/express">express</a>' +
       '<span id="issues-repo-tab-count" title="Not available" class="Counter"></span>';
     assert.equal((await run(html)).open_issues, null);
   });
@@ -158,8 +158,8 @@ describe('github-repo description is the About text, never the OG boilerplate', 
   });
 
   test('with neither, pure boilerplate strips to null rather than being returned', async () => {
-    // As above: the name element keeps the record clear of the empty-record guard.
-    const html = '<strong itemprop="name"><a>expressjs/express</a></strong>' + OG_BOILERPLATE;
+    // As above: the topic link keeps the record clear of the empty-record guard.
+    const html = '<a href="/topics/express">express</a>' + OG_BOILERPLATE;
     assert.equal((await run(html)).description, null);
   });
 
@@ -207,7 +207,7 @@ describe('github-repo against the live hono page (R24)', () => {
   });
 
   test('a rounded count with no exact source reads null, not a guess', async () => {
-    const html = '<strong itemprop="name"><a>hono</a></strong>' +
+    const html = '<a href="/topics/hono">hono</a>' +
       '<span class="octicon-eye"></span><strong>1.7k</strong>';
     assert.equal((await run(html)).watchers, null);
   });
@@ -259,5 +259,54 @@ describe('github-repo /tree/ URLs (R24)', () => {
   test('other repo sub-pages are still not claimed', () => {
     assert.equal(registry.detect('https://github.com/honojs/hono/issues/123'), null);
     assert.equal(registry.detect('https://github.com/honojs/hono/blob/main/README.md'), null);
+  });
+});
+
+/*
+ * R25 sweep, Phase 1.5 (2026-10-19), against https://github.com/expressjs/express
+ * and https://github.com/python/cpython: name came back null (express) or as
+ * the README's first heading (cpython: "This is Python version 3.16.0 alpha
+ * 1+dev"), every topic came back twice, and open_issues was always null. The
+ * fixtures are condensed from those live captures: the About payload, the
+ * Issues and Pull requests tab items, express's topic links (the page renders
+ * the list twice) and cpython's README heading, all verbatim. The GitHub API
+ * reported 110 open issues for expressjs/express that day — the tab's count.
+ */
+describe('github-repo against the live express and cpython pages (R25)', () => {
+  const EXPRESS = readFileSync(new URL('./fixtures/github-repo-express.html', import.meta.url), 'utf8');
+  const CPYTHON = readFileSync(new URL('./fixtures/github-repo-cpython.html', import.meta.url), 'utf8');
+  const express = async () => (await registry.run('github-repo', EXPRESS, 'https://github.com/expressjs/express')).data;
+  const cpython = async () => (await registry.run('github-repo', CPYTHON, 'https://github.com/python/cpython')).data;
+
+  test('name is the repository segment of the URL, never the README heading', async () => {
+    assert.equal((await express()).name, 'express');
+    assert.equal((await cpython()).name, 'cpython');
+  });
+
+  test('a /tree/ URL and a .git suffix still name the repository', async () => {
+    const run = async (url) => (await registry.run('github-repo', EXPRESS, url)).data.name;
+    assert.equal(await run('https://github.com/expressjs/express/tree/master/lib'), 'express');
+    assert.equal(await run('https://github.com/expressjs/express.git'), 'express');
+  });
+
+  test('topics are listed once each', async () => {
+    assert.deepEqual((await express()).topics, ['express', 'javascript', 'nodejs', 'server']);
+    assert.deepEqual((await cpython()).topics, []);
+  });
+
+  test('open_issues is the Issues tab counter, not the pull-request one', async () => {
+    assert.equal((await express()).open_issues, 110);
+  });
+
+  test('a rounded Issues counter ("5k+") reads null, not a guess', async () => {
+    assert.match(CPYTHON, /data-component="CounterLabel"[^>]*>5k\+</);
+    assert.equal((await cpython()).open_issues, null);
+  });
+
+  test('a page with nothing else on it still fails, despite the name in the URL', async () => {
+    await assert.rejects(
+      registry.run('github-repo', '<html><body><h1>Whoa there!</h1></body></html>', 'https://github.com/expressjs/express'),
+      /extracted no data/
+    );
   });
 });
