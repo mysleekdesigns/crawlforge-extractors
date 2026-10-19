@@ -31,6 +31,9 @@ const ASCII_TERMINATORS = '.!?';
 // Closing punctuation a terminator may carry with it: "…end."), 'so.', and
 // the emphasis markers of a bold FAQ question — "**Can I cancel?** Yes."
 const CLOSERS = '"\')\\]”’»*_';
+// One or more footnote markers linking within the page, the way turndown
+// renders Wikipedia's superscripts: [\[42\]](#cite_note-42).
+const CITATION_RUN = /(?:\[\\\[[^\]\n]{1,40}\\\]\]\(#[^)\s]*\))+/y;
 
 const ABBREVIATIONS = new Set([
   'mr', 'mrs', 'ms', 'dr', 'prof', 'sr', 'jr', 'st', 'ave', 'blvd',
@@ -185,12 +188,19 @@ function splitSentences(markdown, start, end, emit) {
     let j = i;
     while (j < end && ASCII_TERMINATORS.includes(markdown[j])) j++;
     while (j < end && CLOSERS.includes(markdown[j])) j++;
+    // Citation markers ride on the sentence they cite: "in 1989.[\[42\]](#cite_note-42) Van Rossum".
+    // A page cites after the stop, so a cited period is a stop even after
+    // a version number: "as Python 0.9.0.[\[42\]](#cite_note-42) Van Rossum".
+    CITATION_RUN.lastIndex = j;
+    const cite = CITATION_RUN.exec(markdown);
+    const cited = cite !== null && j + cite[0].length <= end;
+    if (cited) j += cite[0].length;
     if (j < end && !isSpace(markdown[j])) {
       // "Node.js", "3.14", "e.g." — a period glued to the next word.
       i = j;
       continue;
     }
-    if (ch === '.' && isFalseStop(markdown, sentenceStart, i)) {
+    if (ch === '.' && !cited && isFalseStop(markdown, sentenceStart, i)) {
       i = j;
       continue;
     }
@@ -275,12 +285,49 @@ const HEADING_WEIGHT = 0.5;
 // a live pricing page. A unit is scored as if it had at least this many
 // tokens, so a two-word call to action carries no length advantage.
 const MIN_DOC_LENGTH = 4;
+// A reference list repeats the article's words in its citation titles, and
+// its entries are short, so BM25 puts them first: on Wikipedia's Python
+// article "Who created Python and when was it first released?" ranked the
+// "Why was Python created in the first place?" citation above every
+// sentence of the article (R25). A unit under a references-type heading, or
+// carrying a Wikipedia back-link to where it is cited, keeps this fraction
+// of its score.
+const REFERENCE_WEIGHT = 0.25;
+const REFERENCE_HEADING = /^(?:(?:references?|notes?|citations?|sources?|footnotes?|bibliography|works cited)(?:\s*(?:,|&|and)\s*|\s*$))+$/i;
+const CITE_BACKLINK = /\]\(#cite_ref/;
+
+// A markdown link or image: label, then a target that may hold escaped or
+// balanced parentheses ("ABC_\(programming_language\)") and a quoted title.
+const LINK = /(!?)\[((?:\\.|[^[\]\\])*)\]\((?:\\.|[^()\\\s]|\([^()\s]*\))*(?:\s+"(?:\\.|[^"\\])*")?\)/g;
+
+/**
+ * The text a unit is scored on: a link keeps its label and loses its target,
+ * and a citation link (a "[12]" note marker or a "#cite_ref" back-link)
+ * loses both. A citation URL's slug repeats the cited title, so a target
+ * scored as text let one reference outrank the sentence it supports. Runs
+ * twice so the link around an image is unwrapped too.
+ */
+function visibleText(text) {
+  let out = text;
+  for (let pass = 0; pass < 2 && out.includes(']('); pass++) {
+    out = out.replace(LINK, (match, _bang, label) => (/\]\(#cite_(?:note|ref)/.test(match) ? ' ' : label));
+  }
+  return out;
+}
+
+/** Whether a unit is an entry of a references-type list. */
+function isReference(unit) {
+  if (CITE_BACKLINK.test(String(unit.text ?? ''))) return true;
+  return typeof unit.heading === 'string' && REFERENCE_HEADING.test(unit.heading.trim());
+}
 
 /**
  * The units that answer a query, best first: BM25 over the units as the
  * corpus, with each unit inheriting its heading's terms at half weight, and a
- * phrase boost when a unit contains the whole query. The input units are not
- * touched; every returned unit is a new object.
+ * phrase boost when a unit contains the whole query. Link targets and
+ * citation markers are not scored, and an entry of a references-type list
+ * keeps a quarter of its score. The input units are not touched; every
+ * returned unit is a new object.
  *
  * @template {{ text: string, heading?: string | null, offset: number }} U
  * @param {U[]} units
@@ -300,18 +347,19 @@ export function rankUnits(units, query, { maxUnits = 10, minScore = 0 } = {}) {
 
   const docs = units.map((unit) => {
     const counts = new Map();
-    const tokens = tokenize(String(unit.text ?? ''));
+    const visible = visibleText(String(unit.text ?? ''));
+    const tokens = tokenize(visible);
     for (const token of tokens) counts.set(token, (counts.get(token) || 0) + 1);
     const own = new Set(counts.keys());
     let length = tokens.length;
     if (unit.heading) {
-      for (const token of new Set(tokenize(String(unit.heading)))) {
+      for (const token of new Set(tokenize(visibleText(String(unit.heading))))) {
         if (own.has(token)) continue;
         counts.set(token, HEADING_WEIGHT);
         length += HEADING_WEIGHT;
       }
     }
-    return { counts, own, length: Math.max(length, MIN_DOC_LENGTH) };
+    return { counts, own, visible, length: Math.max(length, MIN_DOC_LENGTH) };
   });
   const n = docs.length;
   const avgdl = docs.reduce((sum, doc) => sum + doc.length, 0) / n || 1;
@@ -330,7 +378,8 @@ export function rankUnits(units, query, { maxUnits = 10, minScore = 0 } = {}) {
       score += idf.get(term) * (tf * (K1 + 1)) / (tf + K1 * (1 - B + B * doc.length / avgdl));
     }
     if (score === 0) return;
-    if (String(unit.text).toLowerCase().includes(phrase)) score *= PHRASE_BOOST;
+    if (doc.visible.toLowerCase().includes(phrase)) score *= PHRASE_BOOST;
+    if (isReference(unit)) score *= REFERENCE_WEIGHT;
     // Round before the threshold, so a score handed back as minScore means
     // what the caller saw.
     score = Math.round(score * 1000) / 1000;

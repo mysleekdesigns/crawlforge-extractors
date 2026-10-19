@@ -47,7 +47,7 @@ const result = await registry.run('shopify-product', body, url, fetchUrl);
 ```
 
 `run()` dispatches to `extractRaw(body, url)` when a template defines one, and
-to `extract($)` with a cheerio document otherwise.
+to `extract($, url)` with a cheerio document otherwise.
 
 A template that rejects a response as not its own throws — surface that to the
 caller as a bad request, not a server error.
@@ -250,7 +250,14 @@ each unit carries the heading above it. The sentence splitter shares the MCP
 server's terminator rules — `。！？` and the danda split on a zero-width
 boundary, and an ASCII period does not split after `Dr.`, `e.g.`, `Node.js`
 or `3.14`. A CJK query matches by character bigrams, so no segmenter is
-needed.
+needed. A footnote marker after a period (`[\[42\]](#cite_note-42)`) stays
+with the sentence it cites and ends it.
+
+Only what a reader sees is scored: a link counts its label, never its URL,
+and citation links (`#cite_note`, `#cite_ref`) count for nothing. A unit under
+a References, Notes, Citations or Sources heading, or one carrying a
+`#cite_ref` back-link, keeps a quarter of its score, so a citation whose title
+repeats the query does not outrank the article.
 
 ### Page text and link records
 
