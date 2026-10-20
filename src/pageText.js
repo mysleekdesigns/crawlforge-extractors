@@ -22,10 +22,25 @@ const BLOCK_SELECTOR =
 const SENTINEL = '\uE000';
 
 /**
+ * Whether the next sibling past any comments is another link, with no text in
+ * between. Links written back to back are laid out apart by CSS this reader
+ * can't see: scrappey.com's "On this page" box is `<a class="block">` links
+ * with no whitespace, and read "The six vendors at a glanceWhat the
+ * independent benchmarks show\u2026" (R25 re-check, 2026-10-19).
+ */
+function abutsLink(el) {
+  let next = el.next;
+  while (next && next.type === 'comment') next = next.next;
+  return Boolean(next && next.type === 'tag' && next.name === 'a');
+}
+
+/**
  * Flatten elements to text, one line per block element: a block starts and
  * ends a line, so inline text just before one is not welded to it (Readability
  * turns "July 2023<br><br>If you…" into "July 2023<p>If you…</p>", which read
- * "July 2023If you…", R24 3.1). Table cells on a row are joined by a space. Works on a detached clone, so the caller's tree is
+ * "July 2023If you…", R24 3.1). Table cells on a row are joined by a space,
+ * and links written back to back with no text between them get a line each.
+ * Works on a detached clone, so the caller's tree is
  * untouched. Callers remove `<script>`/`<style>` first: their text is read
  * like any other.
  *
@@ -38,6 +53,7 @@ export function flattenText($, root = $('body')) {
   const $root = root.clone();
   $root.find('br').replaceWith(SENTINEL);
   $root.find('td, th').after(' ');
+  $root.find('a').filter((_, el) => abutsLink(el)).after(SENTINEL);
   $root.find(BLOCK_SELECTOR).before(SENTINEL).after(SENTINEL);
   return $root
     .toArray()

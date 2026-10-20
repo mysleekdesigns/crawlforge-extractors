@@ -81,3 +81,23 @@ test('inline text before a block starts its own line (R24 3.1: "July 2023If you 
   );
   assert.equal(flattenText(load('<form><label>Name</label><div>Thanks</div></form>')), 'Name\nThanks');
 });
+
+test('links written back to back get a line each (R25 re-check: welded table of contents)', () => {
+  // scrappey.com/qa/anti-bot/anti-bot-services-compared, condensed: Vue's
+  // fragment comments, block-styled links, no whitespace between them.
+  const toc =
+    '<details><summary>On this page</summary><nav><!--[--><a href="#a" class="block">The six vendors at a glance</a>' +
+    '<a href="#b" class="block">What the independent benchmarks show</a><a href="#c" class="block">Why your approach' +
+    ' has to change per vendor</a><!--]--></nav></details>';
+  assert.equal(
+    flattenText(load(toc)),
+    'On this page\nThe six vendors at a glance\nWhat the independent benchmarks show\nWhy your approach has to change per vendor'
+  );
+  assert.equal(flattenText(load('<p><a href="/a">one</a><!-- x --><a href="/b">two</a></p>')), 'one\ntwo');
+});
+
+test('links with text or whitespace between them, and a link before other inline markup, stay on their line', () => {
+  assert.equal(flattenText(load('<p><a href="/a">one</a> <a href="/b">two</a></p>')), 'one two');
+  assert.equal(flattenText(load('<p><a href="/a">one</a>, <a href="/b">two</a></p>')), 'one, two');
+  assert.equal(flattenText(load('<p><a href="/a">Java</a><b>Script</b></p>')), 'JavaScript');
+});
