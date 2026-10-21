@@ -411,12 +411,17 @@ function hnAbsoluteUrl(href) {
   }
 }
 
+function hnScore(label) {
+  const match = (label || '').trim().match(/^(\d+)\s*points?$/i);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
+
 function hnCommentCount(label) {
   const value = (label || '').trim();
   if (!value) return null;
-  if (/^discuss$/i.test(value)) return '0';
+  if (/^discuss$/i.test(value)) return 0;
   const match = value.match(/^(\d+)\s*comments?$/i);
-  return match ? match[1] : value;
+  return match ? Number.parseInt(match[1], 10) : null;
 }
 
 /**
@@ -1004,8 +1009,8 @@ export const TEMPLATES = [
           // "item?id=…" href; resolve it so every story url is absolute.
           url: safeHref(hnAbsoluteUrl($titleLink.attr('href'))),
           site: $row.find('.sitebit a').text().trim() || null,
-          // "1 point" on a fresh story and "3 points" on the rest — strip both.
-          score: $score.text().replace(/\s*points?$/, '').trim() || null,
+          // "1 point" on a fresh story and "3 points" on the rest — both read as an integer.
+          score: hnScore($score.text()),
           author: $subtext.find('.hnuser').text().trim() || null,
           // ".age a" wraps the relative age string ("3 hours ago"); its href is the item permalink.
           posted: $subtext.find('.age a').text().trim() || null,
