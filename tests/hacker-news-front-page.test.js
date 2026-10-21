@@ -32,12 +32,24 @@ describe('hacker-news-front-page — score normalisation', () => {
   test('"1 point" and "3 points" both become bare numbers', async () => {
     const data = await run(row('1', 'Fresh story', '1 point', 'discuss') + row('2', 'Older story', '3 points', '2 comments'));
     assert.equal(data.stories.length, 2);
-    assert.equal(data.stories[0].score, '1');
-    assert.equal(data.stories[1].score, '3');
+    assert.equal(data.stories[0].score, 1);
+    assert.equal(data.stories[1].score, 3);
     // "discuss" is Hacker News for no comments yet; the label is a count now,
     // the same shape as score (R15, 2026-09-04).
-    assert.equal(data.stories[0].comments, '0');
-    assert.equal(data.stories[1].comments, '2');
+    assert.equal(data.stories[0].comments, 0);
+    assert.equal(data.stories[1].comments, 2);
+  });
+
+  // Live sweep 2026-10-20 (Phase 6.1): score and comments came back as
+  // strings ("3", "2"); a count is a number, like the other templates' counts.
+  test('score and comments are numbers, and a job post with neither reads null', async () => {
+    const data = await run(row('4', 'Big thread', '512 points', '1053 comments') + row('5', 'Hiring', '', ''));
+    assert.equal(typeof data.stories[0].score, 'number');
+    assert.equal(typeof data.stories[0].comments, 'number');
+    assert.equal(data.stories[0].score, 512);
+    assert.equal(data.stories[0].comments, 1053);
+    assert.equal(data.stories[1].score, null);
+    assert.equal(data.stories[1].comments, null);
   });
 
   test('a story with no score element (job post) reports null', async () => {
